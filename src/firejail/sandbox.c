@@ -126,11 +126,9 @@ static void chk_chroot(void) {
 	exit(1);
 }
 
-static void monitor_application(pid_t app_pid) {
+static int monitor_application(pid_t app_pid) {
+	int status = 0;
 	while (app_pid) {
-		sleep(1);
-		
-		int status;
 		unsigned rv = waitpid(app_pid, &status, 0);
 		if (arg_debug)
 			printf("Sandbox monitor: waitpid %u retval %d status %d\n", app_pid, rv, status);
@@ -161,6 +159,7 @@ static void monitor_application(pid_t app_pid) {
 		if (app_pid != 0 && arg_debug)
 			printf("Sandbox monitor: monitoring %u\n", app_pid);
 	}
+	return WEXITSTATUS(status);
 }
 
 
@@ -622,7 +621,5 @@ int sandbox(void* sandbox_arg) {
 		start_application();	// start app
 	}
 
-	monitor_application(app_pid);	// monitor application
-	
-	return 0;
+	return monitor_application(app_pid);	// monitor application
 }

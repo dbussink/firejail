@@ -418,6 +418,7 @@ int main(int argc, char **argv) {
 	int custom_profile = 0;	// custom profile loaded
 	char *custom_profile_dir = NULL; // custom profile directory
 	int arg_noprofile = 0; // use generic.profile if none other found/specified
+	int status = 0;
 #ifdef HAVE_SECCOMP
 	int highest_errno = errno_highest_nr();
 #endif
@@ -1507,7 +1508,7 @@ int main(int argc, char **argv) {
 	signal (SIGTERM, my_handler);
 	
 	// wait for the child to finish
-	waitpid(child, NULL, 0);
+	waitpid(child, &status, 0);
 
 	// free globals
 #ifdef HAVE_SECCOMP
@@ -1518,7 +1519,7 @@ int main(int argc, char **argv) {
 	}
 #endif
 
-	myexit(0);
+	myexit(WEXITSTATUS(status));
 
-	return 0;
+	return WEXITSTATUS(status);
 }
