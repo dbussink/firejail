@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -31,9 +31,9 @@
 		BLACKLIST(SYS_init_module), // kernel module handling
 		BLACKLIST(SYS_finit_module),
 		BLACKLIST(SYS_delete_module),
-		BLACKLIST(SYS_iopl), // io permisions
+		BLACKLIST(SYS_iopl), // io permissions
 		BLACKLIST(SYS_ioperm),
-		BLACKLIST(SYS_iopl), // io permisions
+		BLACKLIST(SYS_iopl), // io permissions
 		BLACKLIST(SYS_ni_syscall),
 		BLACKLIST(SYS_swapon), // swap on/off
 		BLACKLIST(SYS_swapoff),
@@ -103,6 +103,11 @@ struct seccomp_data {
 #define VALIDATE_ARCHITECTURE \
      BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, arch))), \
      BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, ARCH_NR, 1, 0), \
+     BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW)
+
+#define VALIDATE_ARCHITECTURE_64 \
+     BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, arch))), \
+     BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, AUDIT_ARCH_X86_64, 1, 0), \
      BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW)
 
 #define VALIDATE_ARCHITECTURE_32 \

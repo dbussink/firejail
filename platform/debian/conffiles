@@ -21,6 +21,8 @@
 /etc/firejail/vlc.profile
 /etc/firejail/audacious.profile
 /etc/firejail/clementine.profile
+/etc/firejail/epiphany.profile
+/etc/firejail/polari.profile
 /etc/firejail/gnome-mplayer.profile
 /etc/firejail/rhythmbox.profile
 /etc/firejail/totem.profile
@@ -54,3 +56,15 @@
 /etc/firejail/hexchat.profile
 /etc/firejail/rtorrent.profile
 /etc/firejail/parole.profile
+/etc/firejail/kmail.profile
+/etc/firejail/seamonkey.profile
+/etc/firejail/seamonkey-bin.profile
+/etc/firejail/telegram.profile
+/etc/firejail/mathematica.profile
+/etc/firejail/Mathematica.profile
+/etc/firejail/uget-gtk.profile
+/etc/firejail/mupen64plus.profile
+/etc/disable-terminals.inc
+/etc/lxterminal.profile
+/etc/cherrytree.profile
+/etc/wesnoth.profile

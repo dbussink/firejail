@@ -243,7 +243,7 @@ Example:
 $ firejail \-\-debug firefox
 
 .TP
-\fB\-\-debug-blackilsts\fR
+\fB\-\-debug-blacklists\fR
 Debug blacklisting.
 .br
 
@@ -430,7 +430,7 @@ $ firejail \-\-ignore=shell --ignore=seccomp firefox
 
 .TP
 \fB\-\-interface=interface
-Move interface in a new network namespace. Up to four --interface options can be sepcified.
+Move interface in a new network namespace. Up to four --interface options can be specified.
 .br
 
 .br
@@ -462,6 +462,16 @@ Example:
 $ firejail \-\-net=eth0 \-\-\ip=none
 
 .TP
+\fB\-\-ip6=address
+Assign IPv6 addresses to the last network interface defined by a \-\-net option.
+.br
+
+.br
+Example:
+.br
+$ firejail \-\-net=eth0 \-\-ip6=2001:0db8:0:f101::1/64 firefox
+
+.TP
 \fB\-\-iprange=address,address
 Assign an IP address in the provided range to the last network interface defined by a \-\-net option. A
 default gateway is assigned by default.
@@ -485,7 +495,11 @@ $ firejail \-\-ipc-namespace firefox
 .TP
 \fB\-\-join=name
 Join the sandbox identified by name. By default a /bin/bash shell is started after joining the sandbox.
-If a program is specified, the program is run in the sandbox.
+If a program is specified, the program is run in the sandbox. If \-\-join command is issued as a regular user,
+all security filters are configured for the new process the same they are configured in the sandbox.
+If \-\-join command is issued as root, the security filters, cgroups and cpus configurations are not applied
+to the process joining the sandbox.
+
 .br
 
 .br
@@ -500,8 +514,11 @@ $ firejail \-\-join=mygame
 
 .TP
 \fB\-\-join=pid
-Join the sandbox identified by PID. By default a /bin/bash shell is started after joining the sandbox.
-If a program is specified, the program is run in the sandbox.
+Join the sandbox identified by process ID. By default a /bin/bash shell is started after joining the sandbox.
+If a program is specified, the program is run in the sandbox. If \-\-join command is issued as a regular user,
+all security filters are configured for the new process the same they are configured in the sandbox.
+If \-\-join command is issued as root, the security filters, cgroups and cpus configurations are not applied
+to the process joining the sandbox.
 .br
 
 .br
@@ -512,6 +529,34 @@ $ firejail \-\-list
 3272:netblue:firejail \-\-private firefox
 .br
 $ firejail \-\-join=3272
+
+.TP
+\fB\-\-join-filesystem=name
+Join the mount namespace of the sandbox identified by name. By default a /bin/bash shell is started after joining the sandbox.
+If a program is specified, the program is run in the sandbox. This command is available only to root user.
+Security filters, cgroups and cpus configurations are not applied to the process joining the sandbox.
+
+.TP
+\fB\-\-join-filesystem=pid
+Join the mount namespace of the sandbox identified by process ID. By default a /bin/bash shell is started after joining the sandbox.
+If a program is specified, the program is run in the sandbox. This command is available only to root user.
+Security filters, cgroups and cpus configurations are not applied to the process joining the sandbox.
+
+.TP
+\fB\-\-join-network=name
+Join the network namespace of the sandbox identified by name. By default a /bin/bash shell is started after joining the sandbox.
+If a program is specified, the program is run in the sandbox. This command is available only to root user.
+Security filters, cgroups and cpus configurations are not applied to the process joining the sandbox.
+
+.TP
+\fB\-\-join-network=pid
+Join the network namespace of the sandbox identified by process ID. By default a /bin/bash shell is started after joining the sandbox.
+If a program is specified, the program is run in the sandbox. This command is available only to root user.
+Security filters, cgroups and cpus configurations are not applied to the process joining the sandbox.
+
+
+
+
 
 .TP
 \fB\-\-list
@@ -634,11 +679,23 @@ The default filter is as follows:
 .br
 \-A INPUT \-m state \-\-state RELATED,ESTABLISHED \-j ACCEPT
 .br
+# allow ping
+.br
 \-A INPUT \-p icmp \-\-icmp-type destination-unreachable \-j ACCEPT
 .br
 \-A INPUT \-p icmp \-\-icmp-type time-exceeded \-j ACCEPT
 .br
 \-A INPUT \-p icmp \-\-icmp-type echo-request \-j ACCEPT
+.br
+# drop STUN (WebRTC) requests
+.br
+-A OUTPUT -p udp --dport 3478 -j DROP
+.br
+-A OUTPUT -p udp --dport 3479 -j DROP
+.br
+-A OUTPUT -p tcp --dport 3478 -j DROP
+.br
+-A OUTPUT -p tcp --dport 3479 -j DROP
 .br
 COMMIT
 .br
@@ -681,6 +738,12 @@ $ firejail --netfilter=/etc/firejail/nolocal.net \\
 .br
 --net=eth0 firefox
 .TP
+\fB\-\-netfilter6=filename
+Enable the IPv6 network filter specified by filename in the new network namespace. The filter file format
+is the format of ip6tables-save and ip6table-restore commands.
+New network namespaces are created using \-\-net option. If a new network namespaces is not created,
+\-\-netfilter6 option does nothing.
+.TP
 \fB\-\-netstats
 Monitor network namespace statistics, see \fBMONITORING\fR section for more details.
 .br
@@ -697,6 +760,16 @@ PID  User    RX(KB/s) TX(KB/s) Command
 1294 netblue 53.355   1.473    firejail \-\-net=eth0 firefox
 .br
 7383 netblue 9.045    0.112    firejail \-\-net=eth0 transmission
+
+.TP
+\fB\-\-nice=value
+Set nice value for all processes running inside the sandbox.
+.br
+
+.br
+Example:
+.br
+$ firejail --nice=-5 firefox
 
 
 .TP
@@ -910,18 +983,6 @@ $ ls /bin
 bash  cat  ls  sed
 
 .TP
-\fB\-\-private-home=file,directory
-Build a new user home in a temporary
-filesystem, and copy the files and directories in the list in the
-new home. All modifications are discarded when the sandbox is
-closed.
-.br
-
-.br
-Example:
-.br
-$ firejail \-\-private-home=.mozilla firefox
-.TP
 \fB\-\-private-dev
 Create a new /dev directory. Only dri, null, full, zero, tty, pts, ptmx, random, urandom, log and shm devices are available.
 .br
@@ -953,6 +1014,17 @@ Example:
 $ firejail --private-etc=group,hostname,localtime, \\
 .br
 nsswitch.conf,passwd,resolv.conf
+
+.TP
+\fB\-\-private-tmp
+Mount an empty temporary filesystem on top of /tmp directory.
+.br
+
+.br
+Example:
+.br
+$ firejail \-\-private-tmp
+
 .TP
 \fB\-\-profile=filename
 Load a custom security profile from filename. For filename use an absolute path or a path relative to the current path.
@@ -981,7 +1053,7 @@ $ firejail \-\-profile-path=/home/netblue/myprofiles
 .TP
 \fB\-\-protocol=protocol,protocol,protocol
 Enable protocol filter. The filter is based on seccomp and checks the first argument to socket system call.
-Recognized values: unix, inet, inet6, netlink and packet.
+Recognized values: unix, inet, inet6, netlink and packet. This option is not supported for i386 architecture.
 .br
 
 .br
@@ -1062,7 +1134,14 @@ sysfs,_sysctl, adjtimex, clock_adjtime, lookup_dcookie, perf_event_open, fanotif
 add_key, request_key, keyctl, uselib, acct, modify_ldt, pivot_root, io_setup,
 io_destroy, io_getevents, io_submit, io_cancel,
 remap_file_pages, mbind, get_mempolicy, set_mempolicy,
-migrate_pages, move_pages, vmsplice, perf_event_open and chroot.
+migrate_pages, move_pages, vmsplice, perf_event_open, chroot,
+tuxcall, reboot, mfsservctl and get_kernel_syms.
+.br
+
+.br
+System architecture is not strictly imposed. The filter is applied
+at run time only if the correct architecture was detected. For the case of I386 and AMD64
+both 32-bit and 64-bit filters are installed.
 .br
 
 .br
@@ -1134,7 +1213,7 @@ SECCOMP Filter:
 .br
   VALIDATE_ARCHITECTURE
 .br
-  EXAMINE_SYSCAL
+  EXAMINE_SYSCALL
 .br
   BLACKLIST 165 mount
 .br
@@ -1297,13 +1376,13 @@ $ firejail \-\-list
 $ firejail \-\-shutdown=3272
 .TP
 \fB\-\-tmpfs=dirname
-Mount a tmpfs filesystem on directory dirname.
+Mount a tmpfs filesystem on directory dirname. This option is available only when running the sandbox as root.
 .br
 
 .br
 Example:
 .br
-$ firejail \-\-tmpfs=/var
+# firejail \-\-tmpfs=/var
 .TP
 \fB\-\-top
 Monitor the most CPU-intensive sandboxes, see \fBMONITORING\fR section for more details.
@@ -1390,6 +1469,15 @@ $ firejail \-\-tree
 .br
   11970:netblue:transmission-gtk 
 .TP
+\fB\-\-user=new-user
+Switch the user before starting the sandbox. This command should be run as root.
+.br
+
+.br
+Example:
+.br
+# firejail \-\-user=www-data
+.TP
 \fB\-\-version
 Print program version and exit.
 .br
@@ -1403,6 +1491,8 @@ firejail version 0.9.27
 .TP
 \fB\-\-whitelist=dirname_or_filename
 Whitelist directory or file. This feature is implemented only for user home, /dev, /media, /opt, /var, and /tmp directories.
+When whitlisting symbolic links, both the link and the real file should be in the same top directory
+(home user, /media, /var etc.)
 .br
 
 .br
@@ -1615,7 +1705,7 @@ List all sandboxed processes.
 .SH LICENSE
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 .PP
-Homepage: http://github.com/netblue30/firejail
+Homepage: http://firejail.wordpress.com
 .SH SEE ALSO
 \&\flfiremon\fR\|(1),
 \&\flfirejail-profile\fR\|(5),

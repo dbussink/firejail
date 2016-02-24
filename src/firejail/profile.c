@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -25,6 +25,7 @@
 
 // find and read the profile specified by name from dir directory
 int profile_find(const char *name, const char *dir) {
+	EUID_ASSERT();
 	assert(name);
 	assert(dir);
 	
@@ -66,6 +67,8 @@ int profile_find(const char *name, const char *dir) {
 // return 1 if the command is to be added to the linked list of profile commands
 // return 0 if the command was already executed inside the function
 int profile_check_line(char *ptr, int lineno, const char *fname) {
+	EUID_ASSERT();
+	
 	// check ignore list
 	int i;
 	for (i = 0; i < MAX_PROFILE_IGNORE; i++) {
@@ -99,6 +102,11 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		return 0;
 	}
 
+	if (strncmp(ptr, "mkdir ", 6) == 0) {
+		fs_mkdir(ptr + 6);
+		return 0;
+	}
+
 	// sandbox name
 	if (strncmp(ptr, "name ", 5) == 0) {
 		cfg.name = ptr + 5;
@@ -110,7 +118,9 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 	}
 	// seccomp, caps, private, user namespace
 	else if (strcmp(ptr, "noroot") == 0) {
+#if HAVE_USERNS
 		check_user_namespace();
+#endif
 		return 0;
 	}
 	else if (strcmp(ptr, "seccomp") == 0) {
@@ -141,28 +151,48 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		arg_private_dev = 1;
 		return 0;
 	}
+	else if (strcmp(ptr, "private-tmp") == 0) {
+		arg_private_tmp = 1;
+		return 0;
+	}
 	else if (strcmp(ptr, "nogroups") == 0) {
 		arg_nogroups = 1;
 		return 0;
 	}
 	else if (strcmp(ptr, "netfilter") == 0) {
+#ifdef HAVE_NETWORK
 		arg_netfilter = 1;
+#endif
 		return 0;
 	}
 	else if (strncmp(ptr, "netfilter ", 10) == 0) {
+#ifdef HAVE_NETWORK
 		arg_netfilter = 1;
 		arg_netfilter_file = strdup(ptr + 10);
 		if (!arg_netfilter_file)
 			errExit("strdup");
 		check_netfilter_file(arg_netfilter_file);
+#endif
+		return 0;
+	}
+	else if (strncmp(ptr, "netfilter6 ", 11) == 0) {
+#ifdef HAVE_NETWORK
+		arg_netfilter6 = 1;
+		arg_netfilter6_file = strdup(ptr + 11);
+		if (!arg_netfilter6_file)
+			errExit("strdup");
+		check_netfilter_file(arg_netfilter6_file);
+#endif
 		return 0;
 	}
 	else if (strcmp(ptr, "net none") == 0) {
+#ifdef HAVE_NETWORK
 		arg_nonetwork  = 1;
 		cfg.bridge0.configured = 0;
 		cfg.bridge1.configured = 0;
 		cfg.bridge2.configured = 0;
 		cfg.bridge3.configured = 0;
+#endif
 		return 0;
 	}
 	
@@ -268,6 +298,13 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		return 0;
 	}
 	
+	// nice value
+	if (strncmp(ptr, "nice ", 4) == 0) {
+		cfg.nice = atoi(ptr + 5);
+		arg_nice = 1;
+		return 0;
+	}
+
 	// cgroup
 	if (strncmp(ptr, "cgroup ", 7) == 0) {
 		set_cgroup(ptr + 7);
@@ -282,14 +319,6 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		return 0;
 	}
 
-	// private home list of files and directories
-	if (strncmp(ptr, "private-home ", 13) == 0) {
-		cfg.home_private_keep = ptr + 13;
-		fs_check_home_list();
-		arg_private = 1;
-		return 0;
-	}
-	
 	// private /etc list of files and directories
 	if (strncmp(ptr, "private-etc ", 12) == 0) {
 		cfg.etc_private_keep = ptr + 12;
@@ -323,7 +352,7 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		char *dname1 = ptr + 5;
 		char *dname2 = split_comma(dname1); // this inserts a '0 to separate the two dierctories
 		if (dname2 == NULL) {
-			fprintf(stderr, "Error: mising second directory for bind\n");
+			fprintf(stderr, "Error: missing second directory for bind\n");
 			exit(1);
 		}
 		
@@ -332,6 +361,10 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 		invalid_filename(dname2);
 		if (strstr(dname1, "..") || strstr(dname2, "..")) {
 			fprintf(stderr, "Error: invalid file name.\n");
+			exit(1);
+		}
+		if (is_link(dname1) || is_link(dname2)) {
+			fprintf(stderr, "Symbolic links are not allowed for bind command\n");
 			exit(1);
 		}
 		
@@ -399,8 +432,13 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 	}
 	else if (strncmp(ptr, "read-only ", 10) == 0)
 		ptr += 10;
-	else if (strncmp(ptr, "tmpfs ", 6) == 0)
+	else if (strncmp(ptr, "tmpfs ", 6) == 0) {
+		if (getuid() != 0) {
+			fprintf(stderr, "Error: tmpfs available only when running the sandbox as root\n");
+			exit(1);
+		}
 		ptr += 6;
+	}
 	else {
 		if (lineno == 0)
 			fprintf(stderr, "Error: \"%s\" as a command line option is invalid\n", ptr);
@@ -427,6 +465,8 @@ int profile_check_line(char *ptr, int lineno, const char *fname) {
 
 // add a profile entry in cfg.profile list; use str to populate the list
 void profile_add(char *str) {
+	EUID_ASSERT();
+	
 	ProfileEntry *prf = malloc(sizeof(ProfileEntry));
 	if (!prf)
 		errExit("malloc");
@@ -448,6 +488,8 @@ void profile_add(char *str) {
 // read a profile file
 static int include_level = 0;
 void profile_read(const char *fname) {
+	EUID_ASSERT();
+	
 	// exit program if maximum include level was reached
 	if (include_level > MAX_INCLUDE_LEVEL) {
 		fprintf(stderr, "Error: maximum profile include level was reached\n");
@@ -507,6 +549,10 @@ void profile_read(const char *fname) {
 		// verify syntax, exit in case of error
 		if (profile_check_line(ptr, lineno, fname))
 			profile_add(ptr);
+// we cannot free ptr here, data is extracted from ptr and linked as a pointer in cfg structure
+//		else {
+//			free(ptr);
+//		}
 	}
 	fclose(fp);
 }

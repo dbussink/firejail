@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -60,16 +60,17 @@ static void create_empty_file(void) {
 void fs_build_firejail_dir(void) {
 	struct stat s;
 
-	if (stat(RUN_FIREJAIL_DIR, &s)) {
+	// CentOS 6 doesn't have /run directory
+	if (stat(RUN_FIREJAIL_BASEDIR, &s)) {
 		if (arg_debug)
-			printf("Creating %s directory\n", RUN_FIREJAIL_DIR);
+			printf("Creating %s directory\n", RUN_FIREJAIL_BASEDIR);
 		/* coverity[toctou] */
-		int rv = mkdir(RUN_FIREJAIL_DIR, S_IRWXU | S_IRWXG | S_IRWXO);
+		int rv = mkdir(RUN_FIREJAIL_BASEDIR, 0755);
 		if (rv == -1)
 			errExit("mkdir");
-		if (chown(RUN_FIREJAIL_DIR, 0, 0) < 0)
+		if (chown(RUN_FIREJAIL_BASEDIR, 0, 0) < 0)
 			errExit("chown");
-		if (chmod(RUN_FIREJAIL_DIR, S_IRWXU  | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0)
+		if (chmod(RUN_FIREJAIL_BASEDIR, 0755) < 0)
 			errExit("chmod");
 	}
 	else { // check /tmp/firejail directory belongs to root end exit if doesn't!
@@ -77,6 +78,53 @@ void fs_build_firejail_dir(void) {
 			fprintf(stderr, "Error: non-root %s directory, exiting...\n", RUN_FIREJAIL_DIR);
 			exit(1);
 		}
+	}
+
+	if (stat(RUN_FIREJAIL_DIR, &s)) {
+		if (arg_debug)
+			printf("Creating %s directory\n", RUN_FIREJAIL_DIR);
+		/* coverity[toctou] */
+		int rv = mkdir(RUN_FIREJAIL_DIR, 0755);
+		if (rv == -1)
+			errExit("mkdir");
+		if (chown(RUN_FIREJAIL_DIR, 0, 0) < 0)
+			errExit("chown");
+		if (chmod(RUN_FIREJAIL_DIR, 0755) < 0)
+			errExit("chmod");
+	}
+	
+	if (stat(RUN_FIREJAIL_NETWORK_DIR, &s)) {
+		if (arg_debug)
+			printf("Creating %s directory\n", RUN_FIREJAIL_NETWORK_DIR);
+		
+		if (mkdir(RUN_FIREJAIL_NETWORK_DIR, 0755) == -1)
+			errExit("mkdir");
+		if (chown(RUN_FIREJAIL_NETWORK_DIR, 0, 0) < 0)
+			errExit("chown");
+		if (chmod(RUN_FIREJAIL_NETWORK_DIR, 0755) < 0)
+			errExit("chmod");
+	}
+	
+	if (stat(RUN_FIREJAIL_BANDWIDTH_DIR, &s)) {
+		if (arg_debug)
+			printf("Creating %s directory\n", RUN_FIREJAIL_BANDWIDTH_DIR);
+		if (mkdir(RUN_FIREJAIL_BANDWIDTH_DIR, 0755) == -1)
+			errExit("mkdir");
+		if (chown(RUN_FIREJAIL_BANDWIDTH_DIR, 0, 0) < 0)
+			errExit("chown");
+		if (chmod(RUN_FIREJAIL_BANDWIDTH_DIR, 0755) < 0)
+			errExit("chmod");
+	}
+		
+	if (stat(RUN_FIREJAIL_NAME_DIR, &s)) {
+		if (arg_debug)
+			printf("Creating %s directory\n", RUN_FIREJAIL_NAME_DIR);
+		if (mkdir(RUN_FIREJAIL_NAME_DIR, 0755) == -1)
+			errExit("mkdir");
+		if (chown(RUN_FIREJAIL_NAME_DIR, 0, 0) < 0)
+			errExit("chown");
+		if (chmod(RUN_FIREJAIL_NAME_DIR, 0755) < 0)
+			errExit("chmod");
 	}
 	
 	create_empty_dir();
@@ -102,12 +150,12 @@ void fs_build_mnt_dir(void) {
 		if (arg_debug)
 			printf("Creating %s directory\n", RUN_MNT_DIR);
 		/* coverity[toctou] */
-		int rv = mkdir(RUN_MNT_DIR, S_IRWXU | S_IRWXG | S_IRWXO);
+		int rv = mkdir(RUN_MNT_DIR, 0755);
 		if (rv == -1)
 			errExit("mkdir");
 		if (chown(RUN_MNT_DIR, 0, 0) < 0)
 			errExit("chown");
-		if (chmod(RUN_MNT_DIR, S_IRWXU  | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0)
+		if (chmod(RUN_MNT_DIR, 0755) < 0)
 			errExit("chmod");
 	}
 
@@ -136,12 +184,18 @@ void fs_build_cp_command(void) {
 			fprintf(stderr, "Error: /bin/cp not found\n");
 			exit(1);
 		}
+		if (is_link(fname)) {
+			fprintf(stderr, "Error: invalid /bin/cp file\n");
+			exit(1);
+		}
 		int rv = copy_file(fname, RUN_CP_COMMAND);
 		if (rv) {
 			fprintf(stderr, "Error: cannot access /bin/cp\n");
 			exit(1);
 		}
 		/* coverity[toctou] */
+		if (chown(RUN_CP_COMMAND, 0, 0))
+			errExit("chown");
 		if (chmod(RUN_CP_COMMAND, 0755))
 			errExit("chmod");
 			
@@ -181,9 +235,38 @@ static void disable_file(OPERATION op, const char *filename) {
 	
 	// Resolve all symlinks
 	char* fname = realpath(filename, NULL);
-	if (fname == NULL) {
+	if (fname == NULL && errno != EACCES) {
 		if (arg_debug)
 			printf("Warning: %s is an invalid file, skipping...\n", filename);
+		return;
+	}
+	if (fname == NULL && errno == EACCES) {
+		if (arg_debug)
+			printf("Debug: no access to file %s, forcing mount\n", filename);
+		// realpath and stat funtions will fail on FUSE filesystems
+		// they don't seem to like a uid of 0
+		// force mounting
+		int rv = mount(RUN_RO_DIR, filename, "none", MS_BIND, "mode=400,gid=0");
+		if (rv == 0)
+			last_disable = SUCCESSFUL;
+		else {
+			rv = mount(RUN_RO_FILE, filename, "none", MS_BIND, "mode=400,gid=0");
+			if (rv == 0)
+				last_disable = SUCCESSFUL;
+		}
+		if (last_disable == SUCCESSFUL) {
+			if (arg_debug)
+				printf("Disable %s\n", filename);
+			if (op == BLACKLIST_FILE)
+				fs_logger2("blacklist", filename);
+			else
+				fs_logger2("blacklist-nolog", filename);
+		}
+		else {
+			if (arg_debug)
+				printf("Warning: %s is an invalid file, skipping...\n", filename);
+		}
+				
 		return;
 	}
 	
@@ -310,11 +393,12 @@ void fs_blacklist(void) {
 	if (!entry)
 		return;
 		
-	// a statically allocated buffer works for all current needs
-	// TODO: if dynamic allocation is ever needed, we should probably add
-	// libraries that make it easy to do without introducing security bugs
-	char *noblacklist[32];
 	size_t noblacklist_c = 0;
+	size_t noblacklist_m = 32;
+	char **noblacklist = calloc(noblacklist_m, sizeof(*noblacklist));
+
+	if (noblacklist == NULL)
+		errExit("failed allocating memory for noblacklist entries");
 
 	while (entry) {
 		OPERATION op = OPERATION_MAX;
@@ -366,9 +450,11 @@ void fs_blacklist(void) {
 
 		// Process noblacklist command
 		if (strncmp(entry->data, "noblacklist ", 12) == 0) {
-			if (noblacklist_c >= sizeof(noblacklist) / sizeof(noblacklist[0])) {
-				fputs("Error: out of memory for noblacklist entries\n", stderr);
-				exit(1);
+			if (noblacklist_c >= noblacklist_m) {
+                                noblacklist_m *= 2;
+                                noblacklist = realloc(noblacklist, sizeof(*noblacklist) * noblacklist_m);
+                                if (noblacklist == NULL)
+                                        errExit("failed increasing memory for noblacklist entries");
 			}
 			else
 				noblacklist[noblacklist_c++] = expand_home(entry->data + 12, homedir);
@@ -408,13 +494,14 @@ void fs_blacklist(void) {
 			if (strncmp(ptr, "${PATH}", 7) == 0) {
 				char *fname = ptr + 7;
 				size_t fname_len = strlen(fname);
-				char **path, *paths[] = {"/bin", "/sbin", "/usr/bin", "/usr/sbin", NULL};
-				for (path = &paths[0]; *path; path++) {
-					char newname[strlen(*path) + fname_len + 1];
-					sprintf(newname, "%s%s", *path, fname);
+				char **paths = build_paths(); //{"/bin", "/sbin", "/usr/bin", "/usr/sbin", NULL};
+				int i = 0;
+				while (paths[i] != NULL) {
+					char *path = paths[i];
+					i++;
+					char newname[strlen(path) + fname_len + 1];
+					sprintf(newname, "%s%s", path, fname);
 					globbing(op, newname, (const char**)noblacklist, noblacklist_c);
-					if  (last_disable == SUCCESSFUL)
-						break;
 				}
 			}
 			else
@@ -428,6 +515,7 @@ void fs_blacklist(void) {
 
 	size_t i;
 	for (i = 0; i < noblacklist_c; i++) free(noblacklist[i]);
+        free(noblacklist);
 }
 
 //***********************************************
@@ -492,12 +580,14 @@ void fs_proc_sys_dev_boot(void) {
 	/* Mount a version of /sys that describes the network namespace */
 	if (arg_debug)
 		printf("Remounting /sys directory\n");
-	if (umount2("/sys", MNT_DETACH) < 0) 
+	if (umount2("/sys", MNT_DETACH) < 0)
 		fprintf(stderr, "Warning: failed to unmount /sys\n");
-	if (mount("sysfs", "/sys", "sysfs", MS_RDONLY|MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_REC, NULL) < 0)
-		fprintf(stderr, "Warning: failed to mount /sys\n");
-	else
-		fs_logger("remount /sys");
+	else {
+		if (mount("sysfs", "/sys", "sysfs", MS_RDONLY|MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_REC, NULL) < 0)
+			fprintf(stderr, "Warning: failed to mount /sys\n");
+		else
+			fs_logger("remount /sys");
+	}
 		
 	if (stat("/sys/firmware", &s) == 0) {
 		disable_file(BLACKLIST_FILE, "/sys/firmware");
@@ -570,6 +660,18 @@ void fs_proc_sys_dev_boot(void) {
 	// disable /dev/port
 	if (stat("/dev/port", &s) == 0) {
 		disable_file(BLACKLIST_FILE, "/dev/port");
+	}
+	
+	if (getuid() != 0) {
+		// disable /dev/kmsg
+		if (stat("/dev/kmsg", &s) == 0) {
+			disable_file(BLACKLIST_FILE, "/dev/kmsg");
+		}
+		
+		// disable /proc/kmsg
+		if (stat("/proc/kmsg", &s) == 0) {
+			disable_file(BLACKLIST_FILE, "/proc/kmsg");
+		}
 	}
 }
 
@@ -689,18 +791,18 @@ void fs_overlayfs(void) {
 	char *oroot;
 	if(asprintf(&oroot, "%s/oroot", RUN_MNT_DIR) == -1)
 		errExit("asprintf");
-	if (mkdir(oroot, S_IRWXU | S_IRWXG | S_IRWXO))
+	if (mkdir(oroot, 0755))
 		errExit("mkdir");
 	if (chown(oroot, 0, 0) < 0)
 		errExit("chown");
-	if (chmod(oroot, S_IRWXU  | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0)
+	if (chmod(oroot, 0755) < 0)
 		errExit("chmod");
 
 	char *basedir = RUN_MNT_DIR;
 	if (arg_overlay_keep) {
 		// set base for working and diff directories
 		basedir = cfg.overlay_dir;
-		if (mkdir(basedir, S_IRWXU | S_IRWXG | S_IRWXO) != 0) {
+		if (mkdir(basedir, 0755) != 0) {
 			fprintf(stderr, "Error: cannot create overlay directory\n");
 			exit(1);
 		}
@@ -709,21 +811,21 @@ void fs_overlayfs(void) {
 	char *odiff;
 	if(asprintf(&odiff, "%s/odiff", basedir) == -1)
 		errExit("asprintf");
-	if (mkdir(odiff, S_IRWXU | S_IRWXG | S_IRWXO))
+	if (mkdir(odiff, 0755))
 		errExit("mkdir");
 	if (chown(odiff, 0, 0) < 0)
 		errExit("chown");
-	if (chmod(odiff, S_IRWXU  | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0)
+	if (chmod(odiff, 0755) < 0)
 		errExit("chmod");
 	
 	char *owork;
 	if(asprintf(&owork, "%s/owork", basedir) == -1)
 		errExit("asprintf");
-	if (mkdir(owork, S_IRWXU | S_IRWXG | S_IRWXO))
+	if (mkdir(owork, 0755))
 		errExit("mkdir");
 	if (chown(owork, 0, 0) < 0)
 		errExit("chown");
-	if (chmod(owork, S_IRWXU  | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) < 0)
+	if (chmod(owork, 0755) < 0)
 		errExit("chmod");
 	
 	// mount overlayfs
@@ -787,6 +889,7 @@ void fs_overlayfs(void) {
 #ifdef HAVE_CHROOT		
 // return 1 if error
 int fs_check_chroot_dir(const char *rootdir) {
+	EUID_ASSERT();
 	assert(rootdir);
 	struct stat s;
 	char *name;
@@ -862,7 +965,7 @@ void fs_chroot(const char *rootdir) {
 	if (asprintf(&rundir, "%s/run", rootdir) == -1)
 		errExit("asprintf");
 	if (!is_dir(rundir)) {
-		int rv = mkdir(rundir, S_IRWXU | S_IRWXG | S_IRWXO);
+		int rv = mkdir(rundir, 0755);
 		(void) rv;
 		rv = chown(rundir, 0, 0);
 		(void) rv;
@@ -876,6 +979,10 @@ void fs_chroot(const char *rootdir) {
 		errExit("asprintf");
 	if (arg_debug)
 		printf("Updating /etc/resolv.conf in %s\n", fname);
+	if (is_link(fname)) {
+		fprintf(stderr, "Error: invalid %s file\n", fname);
+		exit(1);
+	}
 	if (copy_file("/etc/resolv.conf", fname) == -1)
 		fprintf(stderr, "Warning: /etc/resolv.conf not initialized\n");
 		
@@ -904,4 +1011,11 @@ void fs_chroot(const char *rootdir) {
 }
 #endif
 
+void fs_private_tmp(void) {
+	// mount tmpfs on top of /run/firejail/mnt
+	if (arg_debug)
+		printf("Mounting tmpfs on /tmp directory\n");
+	if (mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=1777,gid=0") < 0)
+		errExit("mounting /tmp/firejail/mnt");
+}
 

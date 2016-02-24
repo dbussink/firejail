@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -20,7 +20,7 @@
 #include "firejail.h"
 
 void top(void) {
-	drop_privs(1);
+	EUID_ASSERT();
 	
 	char *arg[4];
 	arg[0] = "bash";
@@ -31,7 +31,7 @@ void top(void) {
 }
 
 void netstats(void) {
-	drop_privs(1);
+	EUID_ASSERT();
 	
 	char *arg[4];
 	arg[0] = "bash";
@@ -42,7 +42,7 @@ void netstats(void) {
 }
 
 void list(void) {
-	drop_privs(1);
+	EUID_ASSERT();
 	
 	char *arg[4];
 	arg[0] = "bash";
@@ -53,7 +53,7 @@ void list(void) {
 }
 
 void tree(void) {
-	drop_privs(1);
+	EUID_ASSERT();
 	
 	char *arg[4];
 	arg[0] = "bash";

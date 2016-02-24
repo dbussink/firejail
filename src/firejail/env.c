@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -86,7 +86,9 @@ void env_ibus_load(void) {
 				*ptr = '\0';
 			if (arg_debug)
 				printf("%s\n", buf);
+			EUID_USER();
 			env_store(buf);
+			EUID_ROOT();
 		}
 
 		fclose(fp);
@@ -114,10 +116,18 @@ void env_defaults(void) {
 	//export PS1='\[\e[1;32m\][\u@\h \W]\$\[\e[0m\] '
 	if (setenv("PROMPT_COMMAND", "export PS1=\"\\[\\e[1;32m\\][\\u@\\h \\W]\\$\\[\\e[0m\\] \"", 1) < 0)
 		errExit("setenv");
+
+	// build the window title and set it
+	char *title;
+	if (asprintf(&title, "\033]0;firejail %s\007\n", cfg.window_title) == -1)
+		errExit("asprintf");
+	printf("%s", title);
+	free(title);
 }
 
 // parse and store the environment setting 
 void env_store(const char *str) {
+	EUID_ASSERT();
 	assert(str);
 	
 	// some basic checking

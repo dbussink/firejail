@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -240,6 +240,7 @@ int caps_check_list(const char *clist, void (*callback)(int)) {
 }
 
 void caps_print(void) {
+	EUID_ASSERT();
 	int i;
 	int elems = sizeof(capslist) / sizeof(capslist[0]);
 	
@@ -289,10 +290,12 @@ int caps_default_filter(void) {
 	else if (arg_debug)
 		printf("Drop CAP_SYS_TTY_CONFIG\n");
 
+#ifdef CAP_SYSLOG
 	if (prctl(PR_CAPBSET_DROP, CAP_SYSLOG, 0, 0, 0) && arg_debug)
 		fprintf(stderr, "Warning: cannot drop CAP_SYSLOG");
 	else if (arg_debug)
 		printf("Drop CAP_SYSLOG\n");
+#endif
 
 	if (prctl(PR_CAPBSET_DROP, CAP_MKNOD, 0, 0, 0) && arg_debug)
 		fprintf(stderr, "Warning: cannot drop CAP_MKNOD");
@@ -362,6 +365,8 @@ void caps_keep_list(const char *clist) {
 
 #define MAXBUF 4098
 static uint64_t extract_caps(int pid) {
+	EUID_ASSERT();
+	
 	char *file;
 	if (asprintf(&file, "/proc/%d/status", pid) == -1) {
 		errExit("asprintf");
@@ -394,6 +399,7 @@ static uint64_t extract_caps(int pid) {
 
 
 void caps_print_filter_name(const char *name) {
+	EUID_ASSERT();
 	if (!name || strlen(name) == 0) {
 		fprintf(stderr, "Error: invalid sandbox name\n");
 		exit(1);
@@ -408,6 +414,8 @@ void caps_print_filter_name(const char *name) {
 }
 
 void caps_print_filter(pid_t pid) {
+	EUID_ASSERT();
+	
 	// if the pid is that of a firejail  process, use the pid of the first child process
 	char *comm = pid_proc_comm(pid);
 	if (comm) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -30,6 +30,7 @@ static int apply_seccomp = 0;
 #define BUFLEN 4096
 
 static void extract_command(int argc, char **argv, int index) {
+	EUID_ASSERT();
 	if (index >= argc)
 		return;
 
@@ -179,20 +180,23 @@ static void extract_user_namespace(pid_t pid) {
 }
 
 void join_name(const char *name, const char *homedir, int argc, char **argv, int index) {
+	EUID_ASSERT();
 	if (!name || strlen(name) == 0) {
 		fprintf(stderr, "Error: invalid sandbox name\n");
 		exit(1);
 	}
+
 	pid_t pid;
 	if (name2pid(name, &pid)) {
 		fprintf(stderr, "Error: cannot find sandbox %s\n", name);
 		exit(1);
 	}
-
 	join(pid, homedir, argc, argv, index);
 }
 
 void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
+	EUID_ASSERT();
+	
 	extract_command(argc, argv, index);
 
 	// if the pid is that of a firejail  process, use the pid of the first child process
@@ -222,6 +226,7 @@ void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
 		}
 	}
 
+	EUID_ROOT();
 	// in user mode set caps seccomp, cpu, cgroup, etc
 	if (getuid() != 0) {
 		extract_caps_seccomp(pid);
@@ -232,20 +237,30 @@ void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
 	}
 	
 	// set cgroup
-	if (cfg.cgroup)
+	if (cfg.cgroup)	// not available for uid 0
 		set_cgroup(cfg.cgroup);
 		
 	// join namespaces
-	if (join_namespace(pid, "ipc"))
-		exit(1);
-	if (join_namespace(pid, "net"))
-		exit(1);
-	if (join_namespace(pid, "pid"))
-		exit(1);
-	if (join_namespace(pid, "uts"))
-		exit(1);
-	if (join_namespace(pid, "mnt"))
-		exit(1);
+	if (arg_join_network) {
+		if (join_namespace(pid, "net"))
+			exit(1);
+	}
+	else if (arg_join_filesystem) {
+		if (join_namespace(pid, "mnt"))
+			exit(1);
+	}
+	else {
+		if (join_namespace(pid, "ipc"))
+			exit(1);
+		if (join_namespace(pid, "net"))
+			exit(1);
+		if (join_namespace(pid, "pid"))
+			exit(1);
+		if (join_namespace(pid, "uts"))
+			exit(1);
+		if (join_namespace(pid, "mnt"))
+			exit(1);
+	}
 
 	pid_t child = fork();
 	if (child < 0)
@@ -256,9 +271,12 @@ void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
 		if (asprintf(&rootdir, "/proc/%d/root", pid) == -1)
 			errExit("asprintf");
 			
-		int rv = chroot(rootdir); // this will fail for processes in sandboxes not started with --chroot option
-		if (rv == 0)
-			printf("changing root to %s\n", rootdir);
+		int rv;
+		if (!arg_join_network) {
+			rv = chroot(rootdir); // this will fail for processes in sandboxes not started with --chroot option
+			if (rv == 0)
+				printf("changing root to %s\n", rootdir);
+		}
 		
 		prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0); // kill the child in case the parent died
 		if (chdir("/") < 0)
@@ -273,21 +291,22 @@ void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
 		}
 		
 		// set cpu affinity
-		if (cfg.cpus)
+		if (cfg.cpus)	// not available for uid 0
 			set_cpu_affinity();
 					
 		// set caps filter
-		if (apply_caps == 1)
+		if (apply_caps == 1)	// not available for uid 0
 			caps_set(caps);
 #ifdef HAVE_SECCOMP
 		// set protocol filter
-		protocol_filter_load(RUN_PROTOCOL_CFG);
-		if (cfg.protocol) {
+		if (getuid() != 0)
+			protocol_filter_load(RUN_PROTOCOL_CFG);
+		if (cfg.protocol) {	// not available for uid 0
 			protocol_filter();
 		}
 				
 		// set seccomp filter
-		if (apply_seccomp == 1)
+		if (apply_seccomp == 1)	// not available for uid 0
 			seccomp_set();
 		
 #endif
@@ -299,14 +318,14 @@ void join(pid_t pid, const char *homedir, int argc, char **argv, int index) {
 			errExit("setenv");
 
 		// mount user namespace or drop privileges
-		if (arg_noroot) {
+		if (arg_noroot) {	// not available for uid 0
 			if (arg_debug)
 				printf("Joining user namespace\n");
 			if (join_namespace(1, "user"))
 				exit(1);
 		}
 		else 
-			drop_privs(arg_nogroups);
+			drop_privs(arg_nogroups);	// nogroups not available for uid 0
 
 		// set prompt color to green
 		//export PS1='\[\e[1;32m\][\u@\h \W]\$\[\e[0m\] '

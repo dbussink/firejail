@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -24,6 +24,7 @@ char *restricted_user = NULL;
 
 
 int restricted_shell(const char *user) {
+	EUID_ASSERT();
 	assert(user);
 
 	// open profile file:

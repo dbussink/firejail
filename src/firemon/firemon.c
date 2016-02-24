@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 netblue30 (netblue30@yahoo.com)
+ * Copyright (C) 2014-2016 netblue30 (netblue30@yahoo.com)
  *
  * This file is part of firejail project
  *
@@ -74,7 +74,7 @@ void firemon_drop_privs(void) {
 // sleep and wait for a key to be pressed
 void firemon_sleep(int st) {
 	if (terminal_set == 0) {
-		tcgetattr(0, &twait);          // get current terminal attirbutes; 0 is the file descriptor for stdin
+		tcgetattr(0, &twait);          // get current terminal attributes; 0 is the file descriptor for stdin
 		memcpy(&tlocal, &twait, sizeof(tlocal));
 		twait.c_lflag &= ~ICANON;      // disable canonical mode
 		twait.c_lflag &= ~ECHO;	// no echo

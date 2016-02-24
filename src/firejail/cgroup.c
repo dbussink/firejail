@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -64,13 +64,15 @@ void load_cgroup(const char *fname) {
 		return;
 	}
 errout:
-	fprintf(stderr, "Warrning: cannot load control group\n");
+	fprintf(stderr, "Warning: cannot load control group\n");
 	if (fp)
 		fclose(fp);
 }
 
 
 void set_cgroup(const char *path) {
+	EUID_ASSERT();
+	
 	invalid_filename(path);
 	
 	// path starts with /sys/fs/cgroup

@@ -31,80 +31,75 @@ Features: https://firejail.wordpress.com/features-3/
 Documentation: https://firejail.wordpress.com/documentation-2/
 
 FAQ: https://firejail.wordpress.com/support/frequently-asked-questions/
-
-## Development version 0.9.35
-
-### The project has moved to a new home: https://firejail.wordpress.com/
-
-### New security profiles:
-New profiles introduced in this version: unbound, dnscrypt-proxy, BitlBee, HexChat, WeeChat,
-google-chrome-stable, google-chrome-beta, google-chrome-unstable, opera-beta
-
-### --noblacklist
 `````
-      --noblacklist=dirname_or_filename
-              Disable blacklist for this directory or file.
+
+`````
+# Current development version: 0.9.39
+`````
+
+`````
+
+## Default seccomp filter update
+
+Currently 50 syscalls are blacklisted by default, out of a total of 318 calls (AMD64, Debian Jessie).
+
+## STUN/WebRTC disabled in default netfilter configuration
+
+The  current netfilter configuration (--netfilter option) looks like this:
+`````
+             *filter
+              :INPUT DROP [0:0]
+              :FORWARD DROP [0:0]
+              :OUTPUT ACCEPT [0:0]
+              -A INPUT -i lo -j ACCEPT
+              -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+              # allow ping
+              -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT
+              -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
+              -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+              # drop STUN (WebRTC) requests
+              -A OUTPUT -p udp --dport 3478 -j DROP
+              -A OUTPUT -p udp --dport 3479 -j DROP
+              -A OUTPUT -p tcp --dport 3478 -j DROP
+              -A OUTPUT -p tcp --dport 3479 -j DROP
+              COMMIT
+`````
+
+The filter is loaded by default for Firefox if a network namespace is configured:
+`````
+$ firejail --net=eth0 firefox
+`````
+
+## Set sandbox nice value
+`````
+      --nice=value
+              Set nice value for all processes running inside the sandbox.
 
               Example:
-              $ firejail
-              $ nc dict.org 2628
-              bash: /bin/nc: Permission denied
-              $ exit
-
-              $ firejail --noblacklist=/bin/nc
-              $ nc dict.org 2628
-              220 pan.alephnull.com dictd 1.12.1/rf on Linux 3.14-1-amd64
+              $ firejail --nice=-5 firefox
 `````
 
-### --whitelist
+## mkdir
 
-Whitelist command accepts files in user home, /dev, /media, /var, and /tmp directories.
-
-### --tracelog
-
-Tracelog command enables auditing blacklisted files and directories. A message
-is sent to syslog in case the file or the directory is accessed. Example:
 `````
-$ firejail --tracelog firefox
-`````
-Syslog example:
-`````
-$ sudo tail -f /var/log/syslog
+$ man firejail-profile
 [...]
-Dec  3 11:43:25 debian firejail[70]: blacklist violation - sandbox 26370, exe firefox,
-   syscall open64, path /etc/shadow
-Dec  3 11:46:17 debian firejail[70]: blacklist violation - sandbox 26370, exe firefox,
-   syscall opendir, path /boot
+       mkdir directory
+              Create   a   directory  in  user  home.  Use  this  command  for
+              whitelisted directories you need to preserve when the sandbox is
+              closed.  Subdirectories  also  need  to  be created using mkdir.
+              Example from firefox profile:
+
+              mkdir ~/.mozilla
+              whitelist ~/.mozilla
+              mkdir ~/.cache
+              mkdir ~/.cache/mozilla
+              mkdir ~/.cache/mozilla/firefox
+              whitelist ~/.cache/mozilla/firefox
+
 [...]
 `````
-Tracelog is enabled by default in several profile files.
 
-### --profile-path
-For  various reasons some users might want to keep the profile files in
-a different directory.  Using --profile-path command line option,
-Firejail can be instructed to look for profiles into this directory.
+## New security profiles
 
-This  is  an  example of relocating the profile files into a new directory,
-/home/netblue/myprofiles. Start by creating the new directory and
-copy all the profile files in:
-`````
-$ mkdir ~/myprofiles && cd ~/myprofiles && cp /etc/firejail/* .
-`````
-Using sed utility, modify the absolute paths for include commands:
-`````
-$ sed -i "s/\/etc\/firejail/\/home\/netblue\/myprofiles/g" *.profile
-$ sed -i "s/\/etc\/firejail/\/home\/netblue\/myprofiles/g" *.inc
-`````
-Start Firejail using the new path:
-`````
-$ firejail --profile-path=~/myprofiles
-`````
-
-### --force
-
-This option allows the user to start a sandbox inside an existing sandbox. It is mainly used for running
-Firejail inside a Docker container.
-
-### Debian reproducible build
-
-### Added "name" and "hostname" command support in profile files
+lxterminal, Epiphany, cherrytree, Battle for Wesnoth

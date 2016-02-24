@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 netblue30 (netblue30@yahoo.com)
+ * Copyright (C) 2014-2016 netblue30 (netblue30@yahoo.com)
  *
  * This file is part of firejail project
  *
@@ -72,6 +72,6 @@ void usage(void) {
 	printf("\tUser - The owner of the sandbox.\n");
 	printf("\n");
 	printf("License GPL version 2 or later\n");
-	printf("Homepage: http://github.com/netblue30/firejail\n");
+	printf("Homepage: http://firejail.wordpress.com\n");
 	printf("\n");
 }

@@ -108,13 +108,19 @@ read-only ${HOME}/.csh_files
 # Initialization files that allow arbitrary command execution
 read-only ${HOME}/.mailcap
 read-only ${HOME}/.exrc
+read-only ${HOME}/_exrc
 read-only ${HOME}/.vimrc
+read-only ${HOME}/_vimrc
+read-only ${HOME}/.gvimrc
+read-only ${HOME}/_gvimrc
 read-only ${HOME}/.vim
 read-only ${HOME}/.emacs
 read-only ${HOME}/.tmux.conf
 read-only ${HOME}/.iscreenrc
 read-only ${HOME}/.muttrc
+read-only ${HOME}/.mutt/muttrc
 read-only ${HOME}/.xmonad
+read-only ${HOME}/.xscreensaver
 
 # The user ~/bin directory can override commands such as ls
 read-only ${HOME}/bin

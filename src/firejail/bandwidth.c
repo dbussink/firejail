@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -118,7 +118,7 @@ void shm_create_firejail_dir(void) {
 	struct stat s;
 	if (stat("/dev/shm/firejail", &s) == -1) {
 		/* coverity[toctou] */
-		if (mkdir("/dev/shm/firejail", 0777) == -1)
+		if (mkdir("/dev/shm/firejail", 0644) == -1)
 			errExit("mkdir");
 		if (chown("/dev/shm/firejail", 0, 0) == -1)
 			errExit("chown");
@@ -271,7 +271,7 @@ void shm_write_bandwidth_file(pid_t pid) {
 	return;
 
 errout:
-	fprintf(stderr, "Error: cannot write bandwidht file %s\n", fname);
+	fprintf(stderr, "Error: cannot write bandwidth file %s\n", fname);
 	exit(1);
 }
 
@@ -413,7 +413,7 @@ void bandwidth_pid(pid_t pid, const char *command, const char *dev, int down, in
 			errExit("asprintf");
 		FILE *fp = fopen(fname, "r");
 		if (!fp) {
-			fprintf(stderr, "Error: cannot read netowk map filel %s\n", fname);
+			fprintf(stderr, "Error: cannot read network map file %s\n", fname);
 			exit(1);
 		}
 		

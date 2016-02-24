@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -57,6 +57,7 @@ static int check_dir_or_file(const char *name) {
 }
 
 void fs_check_etc_list(void) {
+	EUID_ASSERT();
 	if (strstr(cfg.etc_private_keep, "..")) {
 		fprintf(stderr, "Error: invalid private etc list\n");
 		exit(1);
@@ -113,7 +114,7 @@ void fs_private_etc_list(void) {
 
 	// create /tmp/firejail/mnt/etc directory
 	fs_build_mnt_dir();
-	int rv = mkdir(RUN_ETC_DIR, S_IRWXU | S_IRWXG | S_IRWXO);
+	int rv = mkdir(RUN_ETC_DIR, 0755);
 	if (rv == -1)
 		errExit("mkdir");
 	if (chown(RUN_ETC_DIR, 0, 0) < 0)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -24,6 +24,7 @@
 #include <sys/prctl.h>
 
 void shut_name(const char *name) {
+	EUID_ASSERT();
 	if (!name || strlen(name) == 0) {
 		fprintf(stderr, "Error: invalid sandbox name\n");
 		exit(1);
@@ -39,6 +40,8 @@ void shut_name(const char *name) {
 }
 
 void shut(pid_t pid) {
+	EUID_ASSERT();
+	
 	pid_t parent = pid;
 	// if the pid is that of a firejail  process, use the pid of a child process inside the sandbox
 	char *comm = pid_proc_comm(pid);
@@ -54,8 +57,14 @@ void shut(pid_t pid) {
 				printf("Switching to pid %u, the first child process inside the sandbox\n", (unsigned) pid);
 			}
 		}
+		else {
+			fprintf(stderr, "Error: this is not a firejail sandbox\n");
+			exit(1);
+		}
 		free(comm);
 	}
+	else
+		errExit("/proc/PID/comm");
 
 	// check privileges for non-root users
 	uid_t uid = getuid();
@@ -67,6 +76,7 @@ void shut(pid_t pid) {
 		}
 	}
 	
+	EUID_ROOT();
 	printf("Sending SIGTERM to %u\n", pid);
 	kill(pid, SIGTERM);
 	sleep(2);

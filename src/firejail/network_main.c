@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -121,11 +121,11 @@ void net_configure_veth_pair(Bridge *br, const char *ifname, pid_t child) {
 		errExit("asprintf");
 	net_create_veth(dev, ifname, child);
 
-	// bring up the interface
-	net_if_up(dev);
-
 	// add interface to the bridge
 	net_bridge_add_interface(br->dev, dev);
+
+	// bring up the interface
+	net_if_up(dev);
 
 	char *msg;
 	if (asprintf(&msg, "%d.%d.%d.%d address assigned to sandbox", PRINT_IP(br->ipsandbox)) == -1)
@@ -165,6 +165,7 @@ void check_default_gw(uint32_t defaultgw) {
 }
 
 void net_check_cfg(void) {
+	EUID_ASSERT();
 	int net_configured = 0;
 	if (cfg.bridge0.configured)
 		net_configured++;
@@ -223,6 +224,7 @@ void net_check_cfg(void) {
 
 
 void net_dns_print_name(const char *name) {
+	EUID_ASSERT();
 	if (!name || strlen(name) == 0) {
 		fprintf(stderr, "Error: invalid sandbox name\n");
 		exit(1);
@@ -238,8 +240,8 @@ void net_dns_print_name(const char *name) {
 
 #define MAXBUF 4096
 void net_dns_print(pid_t pid) {
+	EUID_ASSERT();
 	// drop privileges - will not be able to read /etc/resolv.conf for --noroot option
-//	drop_privs(1);
 
 	// if the pid is that of a firejail  process, use the pid of the first child process
 	char *comm = pid_proc_comm(pid);
@@ -258,6 +260,7 @@ void net_dns_print(pid_t pid) {
 	}
 	
 	char *fname;
+	EUID_ROOT();
 	if (asprintf(&fname, "/proc/%d/root/etc/resolv.conf", pid) == -1)
 		errExit("asprintf");
 

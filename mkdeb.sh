@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 # based on http://tldp.org/HOWTO/html_single/Debian-Binary-Package-Building-HOWTO/
 # a code archive should already be available
 
 TOP=`pwd`
 CODE_ARCHIVE="$1-$2.tar.bz2"
 CODE_DIR="$1-$2"
-INSTALL_DIR+="$CODE_DIR/debian"
-DEBIAN_CTRL_DIR+="$CODE_DIR/debian/DEBIAN"
+INSTALL_DIR="${INSTALL_DIR}${CODE_DIR}/debian"
+DEBIAN_CTRL_DIR="${DEBIAN_CTRL_DIR}${CODE_DIR}/debian/DEBIAN"
 
 echo "*****************************************"
 echo "code archive: $CODE_ARCHIVE"
@@ -36,6 +36,8 @@ cp platform/debian/copyright $INSTALL_DIR/usr/share/doc/firejail/.
 mkdir -p $DEBIAN_CTRL_DIR
 sed "s/FIREJAILVER/$2/g"  platform/debian/control > $DEBIAN_CTRL_DIR/control
 
+mkdir -p $INSTALL_DIR/usr/share/lintian/overrides/
+cp platform/debian/firejail.lintian-overrides $INSTALL_DIR/usr/share/lintian/overrides/firejail
 
 cp platform/debian/conffiles $DEBIAN_CTRL_DIR/.
 find $INSTALL_DIR  -type d | xargs chmod 755

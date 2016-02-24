@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -258,6 +258,7 @@ int is_link(const char *fname) {
 
 // remove multiple spaces and return allocated memory
 char *line_remove_spaces(const char *buf) {
+	EUID_ASSERT();
 	assert(buf);
 	if (strlen(buf) == 0)
 		return NULL;
@@ -307,6 +308,7 @@ char *line_remove_spaces(const char *buf) {
 
 
 char *split_comma(char *str) {
+	EUID_ASSERT();
 	if (str == NULL || *str == '\0')
 		return NULL;
 	char *ptr = strchr(str, ',');
@@ -321,6 +323,8 @@ char *split_comma(char *str) {
 
 
 int not_unsigned(const char *str) {
+	EUID_ASSERT();
+	
 	int rv = 0;
 	const char *ptr = str;
 	while (*ptr != ' ' && *ptr != '\t' && *ptr != '\0') {
@@ -338,6 +342,7 @@ int not_unsigned(const char *str) {
 #define BUFLEN 4096
 // find the first child for this parent; return 1 if error
 int find_child(pid_t parent, pid_t *child) {
+	EUID_ASSERT();
 	*child = 0;				  // use it to flag a found child
 
 	DIR *dir;
@@ -398,9 +403,30 @@ int find_child(pid_t parent, pid_t *child) {
 
 
 
-void extract_command_name(const char *str) {
-	assert(str);
-	cfg.command_name = strdup(str);
+void extract_command_name(int index, char **argv) {
+	EUID_ASSERT();
+	assert(argv);
+	assert(argv[index]);
+
+
+	// configure command index
+	cfg.original_program_index = index;
+
+	char *str = strdup(argv[index]);
+	if (!str)
+		errExit("strdup");
+
+	// if we have a symbolic link, use the real path to extract the name
+	if (is_link(argv[index])) {
+		char*newname = realpath(argv[index], NULL);
+		if (newname) {
+			free(str);
+			str = newname;
+		}
+	}
+
+	// configure command name
+	cfg.command_name = str;
 	if (!cfg.command_name)
 		errExit("strdup");
 
@@ -419,9 +445,17 @@ void extract_command_name(const char *str) {
 			exit(1);
 		}
 
+
 		char *tmp = strdup(ptr);
 		if (!tmp)
 			errExit("strdup");
+
+		// limit the command to the first '.'
+		char *ptr2 = tmp;
+		while (*ptr2 != '.' && *ptr2 != '\0')
+			ptr2++;
+		*ptr2 = '\0';
+
 		free(cfg.command_name);
 		cfg.command_name = tmp;
 	}
@@ -499,8 +533,7 @@ void notify_other(int fd) {
 // directory (supplied).
 // The return value is allocated using malloc and must be freed by the caller.
 // The function returns NULL if there are any errors.
-char *expand_home(const char *path, const char* homedir)
-{
+char *expand_home(const char *path, const char* homedir) {
 	assert(path);
 	assert(homedir);
 	
@@ -523,8 +556,7 @@ char *expand_home(const char *path, const char* homedir)
 // Equivalent to the GNU version of basename, which is incompatible with
 // the POSIX basename. A few lines of code saves any portability pain.
 // https://www.gnu.org/software/libc/manual/html_node/Finding-Tokens-in-a-String.html#index-basename
-const char *gnu_basename(const char *path)
-{
+const char *gnu_basename(const char *path) {
 	const char *last_slash = strrchr(path, '/');
 	if (!last_slash)
 		return path;
@@ -532,6 +564,7 @@ const char *gnu_basename(const char *path)
 }
 
 uid_t pid_get_uid(pid_t pid) {
+	EUID_ASSERT();
 	uid_t rv = 0;
 	
 	// open status file
@@ -575,6 +608,7 @@ uid_t pid_get_uid(pid_t pid) {
 }
 
 void invalid_filename(const char *fname) {
+	EUID_ASSERT();
 	assert(fname);
 	const char *ptr = fname;
 	

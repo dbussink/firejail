@@ -1,4 +1,34 @@
-firejail (0.9.36-rc1) baseline; urgency=low
+firejail (0.9.39) baseline; urgency=low
+  * work in progress!
+  * default seccomp filter update
+  * disable STUN/WebRTC in default netfilter configuration
+  * added --nice option
+  * addded mkdir profile command
+  * --version also prints compile options
+  * build rpm packages using "make rpms"
+  * new profiles: lxterminal, Epiphany, cherrytree, Polari
+  * bugfixes
+ -- netblue30 <netblue30@yahoo.com>  Tue, 8 Feb 2016 10:00:00 -0500
+
+firejail (0.9.38) baseline; urgency=low
+  * IPv6 support (--ip6 and --netfilter6)
+  * --join command enhancement (--join-network, --join-filesystem)
+  * added --user command
+  * added --disable-network and --disable-userns compile time flags
+  * Centos 6 support
+  * symlink invocation
+  * added KMail, Seamonkey, Telegram, Mathematica, uGet,
+  *   and mupen64plus profiles
+  * --chroot in user mode allowed only if seccomp support is available
+  *   in current Linux kernel
+  * deprecated --private-home feature
+  * the first protocol list installed takes precedence
+  * --tmpfs option allowed only running as root
+  * added --private-tmp option
+  * bugfixes
+ -- netblue30 <netblue30@yahoo.com>  Tue, 2 Feb 2016 10:00:00 -0500
+
+firejail (0.9.36) baseline; urgency=low
   * added  unbound, dnscrypt-proxy, BitlBee, HexChat, WeeChat,
      parole and rtorrent profiles
   * Google Chrome profile rework
@@ -26,7 +56,7 @@ firejail (0.9.36-rc1) baseline; urgency=low
   * added automated feature testing framework
   * Debian reproducible build
   * bugfixes
- -- netblue30 <netblue30@yahoo.com>  Tue, 8 Nov 2015 09:00:00 -0500
+ -- netblue30 <netblue30@yahoo.com>  Sun, 27 Dec 2015 09:00:00 -0500
 
 firejail (0.9.34) baseline; urgency=low
   * added --ignore option

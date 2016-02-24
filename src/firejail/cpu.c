@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -40,6 +40,8 @@ static void set_cpu(const char *str) {
 }
 
 void read_cpu_list(const char *str) {
+	EUID_ASSERT();
+	
 	char *tmp = strdup(str);
 	if (tmp == NULL)
 		errExit("strdup");

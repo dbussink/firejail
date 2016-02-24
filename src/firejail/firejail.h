@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -20,9 +20,15 @@
 #ifndef FIREJAIL_H
 #define FIREJAIL_H
 #include "../include/common.h"
+#include "../include/euid_common.h"
+
 
 // filesystem
+#define RUN_FIREJAIL_BASEDIR	"/run"
 #define RUN_FIREJAIL_DIR	"/run/firejail"
+#define RUN_FIREJAIL_NAME_DIR	"/run/firejail/name"
+#define RUN_FIREJAIL_NETWORK_DIR	"/run/firejail/network"
+#define RUN_FIREJAIL_BANDWIDTH_DIR	"/run/firejail/bandwidth"
 #define RUN_NETWORK_LOCK_FILE	"/run/firejail/firejail.lock"
 #define RUN_RO_DIR	"/run/firejail/firejail.ro.dir"
 #define RUN_RO_FILE	"/run/firejail/firejail.ro.file"
@@ -40,6 +46,7 @@
 #define RUN_PULSE_DIR	"/run/firejail/mnt/pulse"
 #define RUN_DEVLOG_FILE	"/run/firejail/mnt/devlog"
 
+#define RUN_WHITELIST_X11_DIR	"/run/firejail/mnt/orig-x11"
 #define RUN_WHITELIST_HOME_DIR	"/run/firejail/mnt/orig-home"	// default home directory masking
 #define RUN_WHITELIST_HOME_USER_DIR	"/run/firejail/mnt/orig-home-user"	// home directory whitelisting
 #define RUN_WHITELIST_TMP_DIR	"/run/firejail/mnt/orig-tmp"
@@ -49,6 +56,7 @@
 #define RUN_WHITELIST_OPT_DIR	"/run/firejail/mnt/orig-opt"
 
 #define RUN_XAUTHORITY_FILE	"/run/firejail/mnt/.Xauthority"
+#define RUN_ASOUNDRC_FILE	"/run/firejail/mnt/.asoundrc"
 #define RUN_HOSTNAME_FILE	"/run/firejail/mnt/hostname"
 #define RUN_HOSTS_FILE	"/run/firejail/mnt/hosts"
 #define RUN_RESOLVCONF_FILE	"/run/firejail/mnt/resolv.conf"
@@ -75,6 +83,7 @@ typedef struct bridge_t {
 	// inside the sandbox
 	char *devsandbox;	// name of the device inside the sandbox
 	uint32_t ipsandbox;	// ip address inside the sandbox
+	char *ip6sandbox;	// ipv6 address inside the sandbox
 	uint8_t macsandbox[6]; // mac address inside the sandbox
 	uint32_t iprange_start;// iprange arp scan start range
 	uint32_t iprange_end;	// iprange arp scan end range
@@ -121,7 +130,6 @@ typedef struct config_t {
 	char *profile_ignore[MAX_PROFILE_IGNORE];
 	char *chrootdir;	// chroot directory
 	char *home_private;	// private home directory
-	char *home_private_keep;	// keep list for private home directory
 	char *etc_private_keep;	// keep list for private etc directory
 	char *bin_private_keep;	// keep list for private bin directory
 	char *cwd;		// current working directory
@@ -156,13 +164,15 @@ typedef struct config_t {
 	unsigned rlimit_fsize;
 	unsigned rlimit_sigpending;
 	
-	// cpu affinity and control groups
+	// cpu affinity, nice and control groups
 	uint32_t cpus;
+	int nice;
 	char *cgroup;
 	
 
 	// command line
 	char *command_line;
+	char *window_title;
 	char *command_name;
 	char *shell;
 	char **original_argv;
@@ -214,16 +224,22 @@ extern int arg_rlimit_sigpending;// rlimit sigpending
 extern int arg_nogroups;	// disable supplementary groups
 extern int arg_noroot;		// create a new user namespace and disable root user
 extern int arg_netfilter;	// enable netfilter
+extern int arg_netfilter6;	// enable netfilter6
 extern char *arg_netfilter_file;	// netfilter file
+extern char *arg_netfilter6_file;	// netfilter file
 extern int arg_doubledash;	// double dash
 extern int arg_shell_none;	// run the program directly without a shell
 extern int arg_private_dev;	// private dev directory
 extern int arg_private_etc;	// private etc directory
 extern int arg_private_bin;	// private bin directory
+extern int arg_private_tmp;	// private tmp directory
 extern int arg_scan;		// arp-scan all interfaces
 extern int arg_whitelist;	// whitelist commad
 extern int arg_nosound;	// disable sound
 extern int arg_quiet;		// no output for scripting
+extern int arg_join_network;	// join only the network namespace
+extern int arg_join_filesystem;	// join only the mount namespace
+extern int arg_nice;		// nice value configured
 
 extern int parent_to_child_fds[2];
 extern int child_to_parent_fds[2];
@@ -249,7 +265,9 @@ void net_dns_print(pid_t pid);
 
 // network.c
 void net_if_up(const char *ifname);
+void net_if_down(const char *ifname);
 void net_if_ip(const char *ifname, uint32_t ip, uint32_t mask, int mtu);
+void net_if_ip6(const char *ifname, const char *addr6);
 int net_get_if_addr(const char *bridge, uint32_t *ip, uint32_t *mask, uint8_t mac[6], int *mtu);
 int net_add_route(uint32_t dest, uint32_t mask, uint32_t gw);
 void net_ifprint(void);
@@ -280,6 +298,7 @@ void fs_overlayfs(void);
 // chroot into an existing directory; mount exiting /dev and update /etc/resolv.conf
 void fs_chroot(const char *rootdir);
 int fs_check_chroot_dir(const char *rootdir);
+void fs_private_tmp(void);
 
 // profile.c
 // find and read the profile specified by name from dir directory
@@ -328,7 +347,7 @@ int net_move_interface(const char *dev, unsigned pid);
 // util.c
 void drop_privs(int nogroups);
 int mkpath_as_root(const char* path);
-void extract_command_name(const char *str);
+void extract_command_name(int index, char **argv);
 void logsignal(int s);
 void logmsg(const char *msg);
 void logargs(int argc, char **argv) ;
@@ -368,16 +387,12 @@ void fs_private_dev(void);
 void fs_private(void);
 // private mode (--private=homedir)
 void fs_private_homedir(void);
-// private mode (--private-home=list)
-void fs_private_home_list(void);
-// check directory list specified by user (--private-home option) - exit if it fails
-void fs_check_home_list(void);
 // check new private home directory (--private= option) - exit if it fails
 void fs_check_private_dir(void);
 
 
 // seccomp.c
-int seccomp_filter_drop(void);
+int seccomp_filter_drop(int enforce_seccomp);
 int seccomp_filter_keep(void);
 void seccomp_set(void);
 void seccomp_print_filter_name(const char *name);
@@ -430,6 +445,7 @@ void check_output(int argc, char **argv);
 // netfilter.c
 void check_netfilter_file(const char *fname);
 void netfilter(const char *fname);
+void netfilter6(const char *fname);
 
 // bandwidth.c
 void shm_create_firejail_dir(void);
@@ -492,6 +508,22 @@ void fs_logger_print(void);
 void fs_logger_change_owner(void);
 void fs_logger_print_log_name(const char *name);
 void fs_logger_print_log(pid_t pid);
+
+// run_symlink.c
+void run_symlink(int argc, char **argv);
+
+// user.c
+void check_user(int argc, char **argv);
+
+// paths.c
+char **build_paths(void);
+
+// fs_mkdir.c
+void fs_mkdir(const char *name);
+
+// x11.c
+void fs_x11(void);
+void x11_start(int argc, char **argv);
 
 #endif
 

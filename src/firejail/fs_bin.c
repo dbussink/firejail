@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -64,6 +64,7 @@ static char *check_dir_or_file(const char *name) {
 }
 
 void fs_check_bin_list(void) {
+	EUID_ASSERT();
 	if (strstr(cfg.bin_private_keep, "..")) {
 		fprintf(stderr, "Error: invalid private bin list\n");
 		exit(1);
@@ -169,7 +170,7 @@ void fs_private_bin_list(void) {
 
 	// create /tmp/firejail/mnt/bin directory
 	fs_build_mnt_dir();
-	int rv = mkdir(RUN_BIN_DIR, S_IRWXU | S_IRWXG | S_IRWXO);
+	int rv = mkdir(RUN_BIN_DIR, 0755);
 	if (rv == -1)
 		errExit("mkdir");
 	if (chown(RUN_BIN_DIR, 0, 0) < 0)

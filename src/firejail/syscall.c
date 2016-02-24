@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -103,6 +103,8 @@ int syscall_check_list(const char *slist, void (*callback)(int syscall, int arg)
 }
 
 void syscall_print(void) {
+	EUID_ASSERT();
+	
 	int i;
 	int elems = sizeof(syslist) / sizeof(syslist[0]);
 	for (i = 0; i < elems; i++) {

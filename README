@@ -18,6 +18,54 @@ License: GPL v2
 Firejail Authors:
 
 netblue30 (netblue30@yahoo.com)
+Vasya Novikov (https://github.com/vn971)
+	- Wesnoth profile
+mahdi1234 (https://github.com/mahdi1234)
+	- cherrytree profile
+jrabe (https://github.com/jrabe)
+	- disallow access to kdbx files
+	- Epiphany profile
+	- Polari profile
+jgriffiths (https://github.com/jgriffiths)
+	- make rpm packages support
+Tom Mellor (https://github.com/kalegrill)
+	- mupen64plus profile
+Martin Carpenter (https://github.com/mcarpenter)
+	- security audit and bug fixes
+	- Centos 6.x support
+Aleksey Manevich (https://github.com/manevich)
+	- several profile fixes
+	- fix problem with relative path in storage_find function
+	- fix build for systems without bash
+pszxzsd (https://github.com/pszxzsd)
+	-uGet profile
+Rahiel Kasim (https://github.com/rahiel)
+	- Mathematica profile
+creideiki (https://github.com/creideiki)
+	- make the sandbox process reap all children
+curiosity-seeker (https://github.com/curiosity-seeker)
+	- tightening unbound and dnscrypt-proxy profiles
+sinkuu (https://github.com/sinkuu)
+	- blacklisting kwalletd
+	- fix symlink invocation for programs placing symlinks in $PATH
+Bader Zaidan (https://github.com/BaderSZ)
+	- Telegram profile
+Holger Heinz (https://github.com/hheinz)
+	- manpage work
+Andrey Alekseenko (https://github.com/al42and)
+	- fixing lintian warnings
+mahdi1234 (https://github.com/mahdi1234)
+	- Seamonkey profiles
+Ivan Kozik (https://github.com/ivan)
+	- speed up sandbox exit
+Christian Stadelmann (https://github.com/genodeftest)
+	- profile fixes
+pirate486743186 (https://github.com/pirate486743186)
+	- KMail profile
+Kaan Genç (https://github.com/SeriousBug)
+	- dynamic allocation of noblacklist buffer
+Veeti Paananen (https://github.com/veeti)
+	- fixed Spotify profile
 Rahiel Kasim (https://github.com/rahiel)
 	- whitelist keysnail config for firefox
 Peter Hogg (https://github.com/pigmonkey)
@@ -96,4 +144,4 @@ pstn (https://github.com/pstn)
 Alexey Kuznetsov (kuznet@ms2.inr.ac.ru)
 	- src/lib/libnetlink.c extracted from iproute2 software package
 	
-Copyright (C) 2014, 2015 Firejail Authors
+Copyright (C) 2014-2016 Firejail Authors

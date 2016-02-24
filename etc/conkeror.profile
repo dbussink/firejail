@@ -3,6 +3,7 @@ noblacklist ${HOME}/.conkeror.mozdev.org
 include /etc/firejail/disable-mgmt.inc
 include /etc/firejail/disable-secret.inc
 include /etc/firejail/disable-common.inc
+include /etc/firejail/disable-terminals.inc
 caps.drop all
 seccomp
 protocol unix,inet,inet6
@@ -21,8 +22,4 @@ whitelist ~/.pentadactyl
 whitelist ~/.conkerorrc
 
 # common
-whitelist ~/.fonts
-whitelist ~/.fonts.d
-whitelist ~/.fontconfig
-whitelist ~/.fonts.conf
-whitelist ~/.fonts.conf.d
+include /etc/firejail/whitelist-common.inc

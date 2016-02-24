@@ -41,7 +41,7 @@ clean:
 	for dir in $(MYLIBS); do \
 		$(MAKE) -C $$dir clean; \
 	done
-	rm -f firejail.1 firejail.1.gz firemon.1 firemon.1.gz firejail-profile.5 firejail-profile.5.gz firejail-login.5 firejail-login.5.gz
+	rm -f firejail.1 firejail.1.gz firemon.1 firemon.1.gz firejail-profile.5 firejail-profile.5.gz firejail-login.5 firejail-login.5.gz firejail*.rpm
 
 distclean: clean
 	for dir in $(APPS); do \
@@ -54,27 +54,29 @@ distclean: clean
 
 realinstall:
 	# firejail executable
-	mkdir -p $(DESTDIR)/$(bindir)
+	install -m 0755 -d $(DESTDIR)/$(bindir)
 	install -c -m 0755 src/firejail/firejail $(DESTDIR)/$(bindir)/.
 	chmod u+s $(DESTDIR)/$(bindir)/firejail
 	# firemon executable
 	install -c -m 0755 src/firemon/firemon $(DESTDIR)/$(bindir)/.
 	# libraries and plugins
-	mkdir -p $(DESTDIR)/$(libdir)/firejail
+	install -m 0755 -d $(DESTDIR)/$(libdir)/firejail
 	install -c -m 0644 src/libtrace/libtrace.so $(DESTDIR)/$(libdir)/firejail/.
 	install -c -m 0644 src/libtracelog/libtracelog.so $(DESTDIR)/$(libdir)/firejail/.
 	install -c -m 0755 src/ftee/ftee $(DESTDIR)/$(libdir)/firejail/.
 	install -c -m 0755 src/fshaper/fshaper.sh $(DESTDIR)/$(libdir)/firejail/.
 	# documents
-	mkdir -p $(DESTDIR)/$(DOCDIR)
+	install -m 0755 -d $(DESTDIR)/$(DOCDIR)
 	install -c -m 0644 COPYING $(DESTDIR)/$(DOCDIR)/.
 	install -c -m 0644 README $(DESTDIR)/$(DOCDIR)/.
 	install -c -m 0644 RELNOTES $(DESTDIR)/$(DOCDIR)/.
 	# etc files
 	./mketc.sh $(sysconfdir)
-	mkdir -p $(DESTDIR)/$(sysconfdir)/firejail
+	install -m 0755 -d $(DESTDIR)/$(sysconfdir)/firejail
 	install -c -m 0644 .etc/audacious.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/clementine.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/epiphany.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/polari.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/gnome-mplayer.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/rhythmbox.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/totem.profile $(DESTDIR)/$(sysconfdir)/firejail/.
@@ -128,7 +130,19 @@ realinstall:
 	install -c -m 0644 .etc/hexchat.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/rtorrent.profile $(DESTDIR)/$(sysconfdir)/firejail/.
 	install -c -m 0644 .etc/parole.profile $(DESTDIR)/$(sysconfdir)/firejail/.
-	bash -c "if [ ! -f $(DESTDIR)/$(sysconfdir)/firejail/login.users ]; then install -c -m 0644 etc/login.users $(DESTDIR)/$(sysconfdir)/firejail/.; fi;"
+	install -c -m 0644 .etc/kmail.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/seamonkey.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/seamonkey-bin.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/telegram.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/mathematica.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/Mathematica.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/uget-gtk.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/mupen64plus.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/disable-terminals.inc $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/lxterminal.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/cherrytree.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	install -c -m 0644 .etc/wesnoth.profile $(DESTDIR)/$(sysconfdir)/firejail/.
+	sh -c "if [ ! -f $(DESTDIR)/$(sysconfdir)/firejail/login.users ]; then install -c -m 0644 etc/login.users $(DESTDIR)/$(sysconfdir)/firejail/.; fi;"
 	rm -fr .etc
 	# man pages
 	rm -f firejail.1.gz
@@ -139,15 +153,15 @@ realinstall:
 	gzip -9n firejail-profile.5
 	rm -f firejail-login.5.gz
 	gzip -9n firejail-login.5
-	mkdir -p $(DESTDIR)/$(mandir)/man1
+	install -m 0755 -d $(DESTDIR)/$(mandir)/man1
 	install -c -m 0644 firejail.1.gz $(DESTDIR)/$(mandir)/man1/.
 	install -c -m 0644 firemon.1.gz $(DESTDIR)/$(mandir)/man1/.
-	mkdir -p $(DESTDIR)/$(mandir)/man5
+	install -m 0755 -d $(DESTDIR)/$(mandir)/man5
 	install -c -m 0644 firejail-profile.5.gz $(DESTDIR)/$(mandir)/man5/.
 	install -c -m 0644 firejail-login.5.gz $(DESTDIR)/$(mandir)/man5/.
 	rm -f firejail.1.gz firemon.1.gz firejail-profile.5.gz firejail-login.5.gz
 	# bash completion
-	mkdir -p $(DESTDIR)/$(datarootdir)/bash-completion/completions
+	install -m 0755 -d $(DESTDIR)/$(datarootdir)/bash-completion/completions
 	install -c -m 0644 src/bash_completion/firejail.bash_completion $(DESTDIR)/$(datarootdir)/bash-completion/completions/firejail
 	install -c -m 0644 src/bash_completion/firemon.bash_completion $(DESTDIR)/$(datarootdir)/bash-completion/completions/firemon
 
@@ -189,6 +203,10 @@ dist:
 deb: dist
 	./mkdeb.sh $(NAME) $(VERSION)
 
+.PHONY: rpms
+rpms:
+	./platform/rpm/mkrpm.sh $(NAME) $(VERSION)
+
 extras: all
 	$(MAKE) -C extras/firetools
 	
@@ -197,4 +215,5 @@ cppcheck: clean
 
 scan-build: clean
 	scan-build make
+asc:; ./mkasc.sh $(VERSION)
 

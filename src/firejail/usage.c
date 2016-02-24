@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -34,10 +34,12 @@ void usage(void) {
 	printf("\n");
 	printf("Options:\n\n");
 	printf("\t-- - signal the end of options and disables further option processing.\n\n");
+#ifdef HAVE_NETWORK	
 	printf("\t--bandwidth=name - set  bandwidth  limits  for  the sandbox identified\n");
 	printf("\t\tby name, see Traffic Shaping section for more details.\n\n");
 	printf("\t--bandwidth=pid - set  bandwidth  limits  for  the sandbox identified\n");
 	printf("\t\tby PID, see Traffic Shaping section for more details.\n\n");
+#endif
 #ifdef HAVE_BIND		
 	printf("\t--bind=dirname1,dirname2 - mount-bind dirname1 on top of dirname2.\n\n");
 	printf("\t--bind=filename1,dirname2 - mount-bind filename1 on top of filename2.\n\n");
@@ -46,7 +48,11 @@ void usage(void) {
 	printf("\t-c - execute command and exit.\n\n");
 	printf("\t--caps - enable default Linux capabilities filter. The filter disables\n");
 	printf("\t\tCAP_SYS_MODULE, CAP_SYS_RAWIO, CAP_SYS_BOOT, CAP_SYS_NICE,\n");
+#ifdef CAP_SYSLOG
 	printf("\t\tCAP_SYS_TTY_CONFIG, CAP_SYSLOG, CAP_MKNOD, CAP_SYS_ADMIN.\n\n");
+#else
+	printf("\t\tCAP_SYS_TTY_CONFIG, CAP_MKNOD, CAP_SYS_ADMIN.\n\n");
+#endif
 	printf("\t--caps.drop=all - drop all capabilities.\n\n");
 	printf("\t--caps.drop=capability,capability,capability - blacklist Linux\n");
 	printf("\t\tcapabilities filter.\n\n");
@@ -71,7 +77,7 @@ void usage(void) {
 	printf("\t--debug-caps - print all recognized capabilities in the current\n");
 	printf("\t\tFirejail software build and exit.\n\n");
 	printf("\t--debug-check-filename - debug filename checking.\n\n");
-	printf("\t--debug-errnos - print all recognized error numbres in the current\n");
+	printf("\t--debug-errnos - print all recognized error numbers in the current\n");
 	printf("\t\tFirejail software build and exit.\n\n");
 	printf("\t--debug-protocols - print all recognized protocols in the current\n");
 	printf("\t\tFirejail software build and exit.\n\n");
@@ -81,8 +87,10 @@ void usage(void) {
 
 
 
+#ifdef HAVE_NETWORK	
 	printf("\t--defaultgw=address - use this address as default gateway in the new\n");
 	printf("\t\tnetwork namespace.\n\n");
+#endif
 	printf("\t--dns=address - set a DNS server for the sandbox. Up to three DNS\n");
 	printf("\t\tservers can be defined.\n\n");
 	printf("\t--dns.print=name - print DNS configuration for the sandbox identified\n");
@@ -99,23 +107,38 @@ void usage(void) {
 	printf("\t--help, -? - this help screen.\n\n");
 	printf("\t--hostname=name - set sandbox hostname.\n\n");
 	printf("\t--ignore=command - ignore command in profile files.\n\n");
+#ifdef HAVE_NETWORK	
 	printf("\t--interface=name - move interface in a new network namespace. Up to\n");
-	printf("\t\tfour --interface options can be sepcified.\n\n");
-	
+	printf("\t\tfour --interface options can be specified.\n\n");
 	printf("\t--ip=address - set interface IP address.\n\n");
 	printf("\t--ip=none - no IP address and no default gateway address are configured\n");
 	printf("\t\tin the new network namespace. Use this option in case you intend\n");
 	printf("\t\tto start an external DHCP client in the sandbox.\n\n");
+	printf("\t--ip6=address - set interface IPv6 address.\n\n");
 	printf("\t--iprange=address,address - configure an IP address in this range\n\n");
+#endif
 	printf("\t--ipc-namespace - enable a new IPC namespace if the sandbox was started\n");
 	printf("\t\tas a regular user. IPC namespace is enabled by default only if\n");
 	printf("\t\tthe sandbox is started as root.\n\n");
 	printf("\t--join=name - join the sandbox identified by name.\n\n");
 	printf("\t--join=pid - join the sandbox identified by PID.\n\n");
+	printf("\t--join-filesystem=name - join the mount namespace of the sandbox\n");
+	printf("\t\tidentified by name.\n\n");
+	printf("\t--join-filesystem=pid - join the mount namespace of the sandbox\n");
+	printf("\t\tidentified by PID.\n\n");
+#ifdef HAVE_NETWORK	
+	printf("\t--join-network=name - join the network namespace of the sandbox\n");
+	printf("\t\tidentified by name.\n\n");
+	printf("\t--join-network=pid - join the network namespace of the sandbox\n");
+	printf("\t\tidentified by PID.\n\n");
+#endif
 	printf("\t--list - list all sandboxes.\n\n");
+#ifdef HAVE_NETWORK	
 	printf("\t--mac=xx:xx:xx:xx:xx:xx - set interface MAC address.\n\n");
 	printf("\t--mtu=number - set interface MTU.\n\n");
+#endif
 	printf("\t--name=name - set sandbox name.\n\n");
+#ifdef HAVE_NETWORK	
 	printf("\t--net=bridgename - enable network namespaces and connect to this bridge\n");
 	printf("\t\tdevice. Unless specified with option --ip and --defaultgw, an\n");
 	printf("\t\tIP address and a default gateway will be assigned automatically\n");
@@ -148,9 +171,14 @@ void usage(void) {
 	printf("\t--netfilter=filename - enable the network filter specified by\n");
 	printf("\t\tfilename in the new network namespace. The filter file format\n");
 	printf("\t\tis the format of iptables-save and iptable-restore commands.\n\n");
+	printf("\t--netfilter6=filename - enable the IPv6 network filter specified by\n");
+	printf("\t\tfilename in the new network namespace. The filter file format\n");
+	printf("\t\tis the format of ip6tables-save and ip6table-restore commands.\n\n");
 
 	printf("\t--netstats - monitor network statistics for sandboxes creating a new\n");
 	printf("\t\tnetwork namespace.\n\n");
+#endif
+	printf("\t--nice=value - set nice value\n\n");
 	printf("\t--noblacklist=dirname_or_filename - disable blacklist for directory\n");
 	printf("\t\tor file.\n\n");
 	printf("\t--nogroups - disable supplementary groups. Without this option,\n");
@@ -163,11 +191,11 @@ void usage(void) {
 	printf("\t\tmatches the command name, and lastly use %s.profile\n", DEFAULT_USER_PROFILE);
 	printf("\t\tif running as regular user or %s.profile if running as\n", DEFAULT_ROOT_PROFILE);
 	printf("\t\troot.\n\n");
-		 	
+#ifdef HAVE_USERNS		 	
 	printf("\t--noroot - install a user namespace with a single user - the current\n");
 	printf("\t\tuser. root user does not exist in the new namespace. This option\n");
 	printf("\t\tis not supported for --chroot and --overlay configurations.\n\n");
-
+#endif
 	printf("\t--nosound - disable sound system\n\n");
 		
 	printf("\t--output=logfile - stdout logging and log rotation. Copy stdout to\n");
@@ -194,18 +222,15 @@ void usage(void) {
 	printf("\t\tand copy the programs in the list. The same directory is\n");
 	printf("\t\talso bind-mounted over /sbin, /usr/bin and /usr/sbin.\n\n");
 
-	printf("\t--private-home=file,directory - build a new user home in a temporary\n");
-	printf("\t\tfilesystem, and copy the files and directories in the list in\n");
-	printf("\t\tthe new home. All modifications are discarded when the sandbox\n");
-	printf("\t\tis closed.\n\n");
-
 	printf("\t--private-dev - create a new /dev directory. Only dri, null, full, zero,\n");
-	printf("\t\ttty, pst, ptms, random, urandom, log and shm devices are\n");
+	printf("\t\tty, pst, ptms, random, urandom, log and shm devices are\n");
 	printf("\t\tavailable.\n\n");
 
 	printf("\t--private-etc=file,directory - build a new /etc in a temporary\n");
 	printf("\t\tfilesystem, and copy the files and directories in the list.\n");
 	printf("\t\tAll modifications are discarded when the sandbox is closed.\n\n");
+	
+	printf("\t--private-tmp - mount a tmpfs on top of /tmp directory\n\n");
 	
 	printf("\t--profile=filename - use a custom profile.\n\n");
 	printf("\t--profile-path=directory - use this directory to look for profile files.\n\n");
@@ -227,24 +252,13 @@ void usage(void) {
 	printf("\t\tcreated for the real user ID of the calling process.\n\n");
 	printf("\t--rlimit-sigpending=number - set the maximum number of pending signals\n");
 	printf("\t\tfor a process.\n\n");
-
+#ifdef HAVE_NETWORK	
 	printf("\t--scan - ARP-scan all the networks from inside a network namespace.\n");
 	printf("\t\tThis makes it possible to detect macvlan kernel device drivers\n");
 	printf("\t\trunning on the current host.\n\n");
-	
+#endif	
 #ifdef HAVE_SECCOMP
-	printf("\t--seccomp - enable seccomp filter and blacklist the syscalls in the\n");
-	printf("\t\tlist. The default list is as follows: mount, umount2,\n");
-	printf("\t\tptrace, kexec_load, open_by_handle_at, init_module,\n");
-	printf("\t\tfinit_module, delete_module, iopl, ioperm, swapon, swapoff,\n");
-	printf("\t\tsyslog, process_vm_readv and process_vm_writev\n");
-	printf("\t\tsysfs,_sysctl, adjtimex, clock_adjtime, lookup_dcookie,\n");
-	printf("\t\tperf_event_open, fanotify_init, kcmp, add_key, request_key,\n");
-	printf("\t\tkeyctl, uselib, acct, modify_ldt, pivot_root, io_setup,\n");
-	printf("\t\tio_destroy, io_getevents, io_submit, io_cancel,\n");
-	printf("\t\tremap_file_pages, mbind, get_mempolicy, set_mempolicy,\n");
-	printf("\t\tmigrate_pages, move_pages, vmsplice, perf_event_open and\n");
-	printf("\t\tkexec_file_load, chroot.\n\n");
+	printf("\t--seccomp - enable seccomp filter and apply the default blacklist.\n\n");
 	
 	printf("\t--seccomp=syscall,syscall,syscall - enable seccomp filter, blacklist the\n");
 	printf("\t\tdefault syscall list and the syscalls specified by the command.\n\n");
@@ -268,12 +282,14 @@ void usage(void) {
 	printf("\t--shell=program - set default user shell.\n\n");
 	printf("\t--shutdown=name - shutdown the sandbox identified by name.\n\n");
 	printf("\t--shutdown=pid - shutdown the sandbox identified by PID.\n\n");
-	printf("\t--tmpfs=dirname - mount a tmpfs filesystem on directory dirname.\n\n");
+	printf("\t--tmpfs=dirname - mount a tmpfs filesystem on directory dirname.\n");
+	printf("\t\tThis option is available only when running the sandbox as root.\n\n");
 	printf("\t--top - monitor the most CPU-intensive sandboxes.\n\n");
 	printf("\t--trace - trace open, access and connect system calls.\n\n");
 	printf("\t--tracelog - add a syslog message for every access to files or\n");
 	printf("\t\tdirectoires blacklisted by the security profile.\n\n");
 	printf("\t--tree - print a tree of all sandboxed processes.\n\n");
+	printf("\t--user=new_user - switch the user before starting the sandbox.\n\n");
 	printf("\t--version - print program version and exit.\n\n");
 	printf("\t--whitelist=dirname_or_filename - whitelist directory or file.\n\n");
 	printf("\t--zsh - use /usr/bin/zsh as default shell.\n\n");
@@ -281,6 +297,7 @@ void usage(void) {
 	printf("\n");
 
 
+#ifdef HAVE_NETWORK	
 	printf("Traffic Shaping\n\n");
 	
 	printf("Network bandwidth is an expensive resource shared among  all  sandboxes\n");
@@ -310,7 +327,7 @@ void usage(void) {
             printf("\t$ firejail --bandwidth=mybrowser clear eth0\n");
 	printf("\n");
 	printf("\n");
-
+#endif
 
 
 	printf("Monitoring\n\n");
@@ -376,6 +393,6 @@ void usage(void) {
 	printf("          list all running sandboxes\n");
 	printf("\n");
 	printf("License GPL version 2 or later\n");
-	printf("Homepage: http://github.com/netblue30/firejail\n");
+	printf("Homepage: http://firejail.wordpress.com\n");
 	printf("\n");
 }

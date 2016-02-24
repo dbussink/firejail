@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -27,6 +27,7 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <errno.h>
 
 #include <sched.h>
 #ifndef CLONE_NEWUSER
@@ -107,6 +108,9 @@ static void sandbox_if_up(Bridge *br) {
 		net_if_ip(dev, br->ipsandbox, br->mask, br->mtu);
 		net_if_up(dev);
 	}
+	
+	if (br->ip6sandbox)
+		 net_if_ip6(dev, br->ip6sandbox);
 }
 
 static void chk_chroot(void) {
@@ -129,7 +133,14 @@ static void chk_chroot(void) {
 static int monitor_application(pid_t app_pid) {
 	int status = 0;
 	while (app_pid) {
-		unsigned rv = waitpid(app_pid, &status, 0);
+		int status;
+		pid_t rv;
+		do {
+			rv = waitpid(-1, &status, 0);
+			if (rv == -1)
+				break;
+		}
+		while(rv != app_pid);
 		if (arg_debug)
 			printf("Sandbox monitor: waitpid %u retval %d status %d\n", app_pid, rv, status);
 
@@ -160,6 +171,32 @@ static int monitor_application(pid_t app_pid) {
 			printf("Sandbox monitor: monitoring %u\n", app_pid);
 	}
 	return WEXITSTATUS(status);
+
+#if 0
+// todo: find a way to shut down interfaces before closing the namespace
+// the problem is we don't have enough privileges to shutdown interfaces in this moment
+	// shut down bridge/macvlan interfaces
+	if (any_bridge_configured()) {
+		
+		if (cfg.bridge0.configured) {
+			printf("Shutting down %s\n", cfg.bridge0.devsandbox);
+			net_if_down( cfg.bridge0.devsandbox);
+		}
+		if (cfg.bridge1.configured) {
+			printf("Shutting down %s\n", cfg.bridge1.devsandbox);
+			net_if_down( cfg.bridge1.devsandbox);
+		}
+		if (cfg.bridge2.configured) {
+			printf("Shutting down %s\n", cfg.bridge2.devsandbox);
+			net_if_down( cfg.bridge2.devsandbox);
+		}
+		if (cfg.bridge3.configured) {
+			printf("Shutting down %s\n", cfg.bridge3.devsandbox);
+			net_if_down( cfg.bridge3.devsandbox);
+		}
+		usleep(20000);	// 20 ms sleep
+	}	
+#endif	
 }
 
 
@@ -292,6 +329,9 @@ int sandbox(void* sandbox_arg) {
 	if (arg_netfilter && any_bridge_configured()) { // assuming by default the client filter
 		netfilter(arg_netfilter_file);
 	}
+	if (arg_netfilter6 && any_bridge_configured()) { // assuming by default the client filter
+		netfilter6(arg_netfilter6_file);
+	}
 
 	// load IBUS env variables
 	if (arg_nonetwork || any_bridge_configured() || any_interface_configured()) {
@@ -310,6 +350,9 @@ int sandbox(void* sandbox_arg) {
 	//****************************
 	// configure filesystem
 	//****************************
+#ifdef HAVE_SECCOMP
+	int enforce_seccomp = 0;
+#endif
 #ifdef HAVE_CHROOT		
 	if (cfg.chrootdir) {
 		fs_chroot(cfg.chrootdir);
@@ -321,6 +364,9 @@ int sandbox(void* sandbox_arg) {
 			// force default seccomp inside the chroot, no keep or drop list
 			// the list build on top of the default drop list is kept intact
 			arg_seccomp = 1;
+#ifdef HAVE_SECCOMP
+			enforce_seccomp = 1;
+#endif
 			if (cfg.seccomp_list_drop) {
 				free(cfg.seccomp_list_drop);
 				cfg.seccomp_list_drop = NULL;
@@ -371,8 +417,6 @@ int sandbox(void* sandbox_arg) {
 	if (arg_private) {
 		if (cfg.home_private)	// --private=
 			fs_private_homedir();
-		else if (cfg.home_private_keep) // --private-home=
-			fs_private_home_list();
 		else // --private
 			fs_private();
 	}
@@ -387,6 +431,8 @@ int sandbox(void* sandbox_arg) {
 	}
 	if (arg_private_bin)
 		fs_private_bin_list();
+	if (arg_private_tmp)
+		fs_private_tmp();
 	
 	//****************************
 	// apply the profile file
@@ -537,6 +583,20 @@ int sandbox(void* sandbox_arg) {
 	// set user-supplied environment variables
 	env_apply();
 
+	// set nice
+	if (arg_nice) {
+		errno = 0;
+		int rv = nice(cfg.nice);
+		(void) rv;
+		if (errno) {
+			fprintf(stderr, "Warning: cannot set nice value\n");
+			errno = 0;
+		}
+	}
+	
+	// clean /tmp/.X11-unix sockets
+	fs_x11();
+	
 	//****************************
 	// set security filters
 	//****************************
@@ -562,7 +622,7 @@ int sandbox(void* sandbox_arg) {
 		else if (cfg.seccomp_list_errno)
 			seccomp_filter_errno(); 
 		else
-			seccomp_filter_drop();
+			seccomp_filter_drop(enforce_seccomp);
 	}
 #endif
 

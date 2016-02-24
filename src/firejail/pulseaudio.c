@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -93,8 +93,8 @@ void pulseaudio_init(void) {
 	 
  	// create the new user pulseaudio directory
 	 fs_build_mnt_dir();
-	int rv = mkdir(RUN_PULSE_DIR, S_IRWXU | S_IRWXG | S_IRWXO);
-	(void) rv; // in --chroot mode the directory canalready be there
+	int rv = mkdir(RUN_PULSE_DIR, 0700);
+	(void) rv; // in --chroot mode the directory can already be there
 	if (chown(RUN_PULSE_DIR, getuid(), getgid()) < 0)
 		errExit("chown");
 	if (chmod(RUN_PULSE_DIR, 0700) < 0)
@@ -104,6 +104,10 @@ void pulseaudio_init(void) {
 	char *pulsecfg = NULL;
 	if (asprintf(&pulsecfg, "%s/client.conf", RUN_PULSE_DIR) == -1)
 		errExit("asprintf");
+	if (is_link("/etc/pulse/client.conf")) {
+		fprintf(stderr, "Error: invalid /etc/pulse/client.conf file\n");
+		exit(1);
+	}
 	if (copy_file("/etc/pulse/client.conf", pulsecfg))
 		errExit("copy_file");
 	FILE *fp = fopen(pulsecfg, "a+");

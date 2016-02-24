@@ -4,6 +4,7 @@ include /etc/firejail/disable-mgmt.inc
 include /etc/firejail/disable-secret.inc
 include /etc/firejail/disable-common.inc
 include /etc/firejail/disable-devel.inc
+include /etc/firejail/disable-terminals.inc
 caps.drop all
 seccomp
 protocol unix,inet,inet6,netlink
@@ -11,7 +12,11 @@ netfilter
 tracelog
 noroot
 whitelist ${DOWNLOADS}
+mkdir ~/.mozilla
 whitelist ~/.mozilla
+mkdir ~/.cache
+mkdir ~/.cache/mozilla
+mkdir ~/.cache/mozilla/firefox
 whitelist ~/.cache/mozilla/firefox
 whitelist ~/dwhelper
 whitelist ~/.zotero
@@ -23,6 +28,7 @@ whitelist ~/.pentadactyl
 whitelist ~/.keysnail.js
 whitelist ~/.config/gnome-mplayer
 whitelist ~/.cache/gnome-mplayer/plugin
+whitelist ~/.pki
 include /etc/firejail/whitelist-common.inc
 
 # experimental features

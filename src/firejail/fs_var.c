@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014, 2015 Firejail Authors
+ * Copyright (C) 2014-2016 Firejail Authors
  *
  * This file is part of firejail project
  *
@@ -110,7 +110,7 @@ static void build_dirs(void) {
 void fs_var_log(void) {
 	build_list("/var/log");
 	
-	// create /var/log if it does't exit
+	// create /var/log if it doesn't exit
 	if (is_dir("/var/log")) {
 		// extract group id for /var/log/wtmp
 		struct stat s;
@@ -184,7 +184,7 @@ void fs_var_lib(void) {
 			printf("Mounting tmpfs on /var/lib/nginx\n");
 		if (mount("tmpfs", "/var/lib/nginx", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=755,gid=0") < 0)
 			errExit("mounting /var/lib/nginx");
-		fs_logger("mount tmpfs on /var/lib/nignx");
+		fs_logger("mount tmpfs on /var/lib/nginx");
 	}			
 
 	// net-snmp multiserver
@@ -232,14 +232,14 @@ void fs_var_cache(void) {
 			gid = p->pw_gid;
 		}
 		
-		int rv = mkdir("/var/cache/lighttpd/compress", S_IRWXU | S_IRWXG | S_IRWXO);
+		int rv = mkdir("/var/cache/lighttpd/compress", 0755);
 		if (rv == -1)
 			errExit("mkdir");
 		if (chown("/var/cache/lighttpd/compress", uid, gid) < 0)
 			errExit("chown");
 		fs_logger("mkdir /var/cache/lighttpd/compress");
 
-		rv = mkdir("/var/cache/lighttpd/uploads", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+		rv = mkdir("/var/cache/lighttpd/uploads", 0755);
 		if (rv == -1)
 			errExit("mkdir");
 		if (chown("/var/cache/lighttpd/uploads", uid, gid) < 0)
@@ -268,7 +268,7 @@ void fs_var_lock(void) {
 	if (is_dir("/var/lock")) {
 		if (arg_debug)
 			printf("Mounting tmpfs on /var/lock\n");
-		if (mount("tmpfs", "/var/lock", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=777,gid=0") < 0)
+		if (mount("tmpfs", "/var/lock", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=1777,gid=0") < 0)
 			errExit("mounting /lock");
 		fs_logger("mount tmpfs on /var/lock");
 	}
@@ -286,7 +286,7 @@ void fs_var_lock(void) {
 			}
 			if (arg_debug)
 				printf("Mounting tmpfs on %s on behalf of /var/lock\n", lnk);
-			if (mount("tmpfs", lnk, "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=777,gid=0") < 0)
+			if (mount("tmpfs", lnk, "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=1777,gid=0") < 0)
 				errExit("mounting /var/lock");
 			free(lnk);
 			fs_logger("mount tmpfs on /var/lock");
@@ -304,7 +304,7 @@ void fs_var_tmp(void) {
 		if (!is_link("/var/tmp")) {
 			if (arg_debug)
 				printf("Mounting tmpfs on /var/tmp\n");
-			if (mount("tmpfs", "/var/tmp", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=777,gid=0") < 0)
+			if (mount("tmpfs", "/var/tmp", "tmpfs", MS_NOSUID | MS_STRICTATIME | MS_REC,  "mode=1777,gid=0") < 0)
 				errExit("mounting /var/tmp");
 			fs_logger("mount tmpfs on /var/tmp");
 		}
