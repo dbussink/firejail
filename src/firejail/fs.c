@@ -979,10 +979,6 @@ void fs_chroot(const char *rootdir) {
 		errExit("asprintf");
 	if (arg_debug)
 		printf("Updating /etc/resolv.conf in %s\n", fname);
-	if (is_link(fname)) {
-		fprintf(stderr, "Error: invalid %s file\n", fname);
-		exit(1);
-	}
 	if (copy_file("/etc/resolv.conf", fname) == -1)
 		fprintf(stderr, "Warning: /etc/resolv.conf not initialized\n");
 		
