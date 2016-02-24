@@ -133,7 +133,6 @@ static void chk_chroot(void) {
 static int monitor_application(pid_t app_pid) {
 	int status = 0;
 	while (app_pid) {
-		int status;
 		pid_t rv;
 		do {
 			rv = waitpid(-1, &status, 0);
